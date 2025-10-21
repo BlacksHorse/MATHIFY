@@ -1,157 +1,47 @@
-<script>
-function t(s){ return String(s||'').trim(); }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mathify - Minimal Test</title>
+<style>
+  body{font-family:Arial, sans-serif; padding:24px; background:#f6f7fb;}
+  .card{background:#fff; border:1px solid #e6e8ef; border-radius:12px; padding:16px;}
+  input,button{padding:10px; border:1px solid #cfd3da; border-radius:8px}
+  button{background:#1f6feb; color:#fff; border:none; margin-left:8px}
+  pre{white-space:pre-wrap}
+</style>
+</head>
+<body>
+  <h1>Mathify ✅ Minimal Test</h1>
+  <p>If you see this, the page loaded correctly.</p>
 
-/* --- Robust sanitizer ---
-   - Converts ×, ⋅, ·, • or digit x digit  → *
-   - Converts ÷ or :  → /
-   - Inserts * for 2y, 3(x+1), )(  */
-function sanitize(expr){
-  let e = String(expr);
+  <div class="card">
+    <input id="q" placeholder="Try: 10÷2 or 2×3" />
+    <button onclick="go()">Compute</button>
+    <pre id="out"></pre>
+  </div>
 
-  // 1) normalize unicode operators
-  e = e
-    .replace(/[÷:]/g, "/")           // division
-    .replace(/–|−/g, "-");           // minus variants
-
-  // 2) explicit multiply when it's number x number OR ) x ( OR number x (
-  // handle x/×/⋅/·/• between numeric or bracket contexts
-  e = e.replace(/(\d|\))\s*[xX×⋅·•]\s*(\d|\()/g, '$1*$2');
-
-  // 3) keep 'x' as a variable elsewhere, but fix implicit multiplications
-  e = e
-    .replace(/(\d)\s*([a-zA-Z])/g, '$1*$2')  // 2y -> 2*y
-    .replace(/([a-zA-Z])\s*(\d)/g, '$1*$2')  // y2 -> y*2
-    .replace(/(\d)\s*\(/g, '$1*(')           // 3( -> 3*(
-    .replace(/\)\s*\(/g, ')*(');             // )( -> )*(
-
-  return e.trim();
-}
-
-function classify(expr, forced){
-  if (forced && forced!=='auto') return forced;
-  if (/^diff\(|d\/dx/i.test(expr)) return 'derivative';
-  if (/^int\(|∫/i.test(expr)) return 'integral';
-  if (/limit\(/i.test(expr)) return 'limit';
-  if (/\[.*\]/.test(expr) || /matrix|det|inverse/i.test(expr)) return 'matrix';
-  if (/=/.test(expr)) return 'equation';
-  if (!/[a-zA-Z]/.test(expr)) return 'arithmetic';  // pure numbers/operators
-  return 'algebra';
-}
-
-function show(steps=[], ans=''){
-  const box = document.getElementById('steps');
-  box.innerHTML = (steps && steps.length)
-    ? steps.map(s=>`<div class="step">${s}</div>`).join('')
-    : '<div class="muted">No steps.</div>';
-  document.getElementById('answer').textContent = ans;
-}
-
-/********** SOLVERS **********/
-
-function arithmeticEval(expr){
-  try{
-    // math.evaluate handles + - * / ^ ( ) and order of ops
-    const val = math.evaluate(expr);
-    return {steps:[`Parse → ${expr}`, `Compute value`], answer: String(val)};
-  }catch(e){ return null; }
-}
-
-function algebraSteps(expr){
-  try{
-    const out = mathsteps.simplifyExpression(expr);
-    if (out.length){
-      const steps = [`Parse → ${expr}`].concat(
-        out.map(s => `${s.changeType.replace(/_/g,' ')} → ${s.newExpression}`)
-      );
-      return {steps, answer: out.at(-1).newExpression.toString()};
+  <!-- Only one CDN to keep things simple -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@11"></script>
+  <script>
+    function sanitize(s){
+      return String(s||'')
+        .replace(/[÷:]/g,'/')
+        .replace(/–|−/g,'-')
+        .replace(/(\d|\))\s*[xX×⋅·•]\s*(\d|\()/g,'$1*$2');
     }
-  }catch(e){}
-  try{
-    const ans = nerdamer(expr).toString();
-    return {steps:[`Parse → ${expr}`, 'Symbolic simplification (nerdamer)'], answer: ans};
-  }catch(e){ return null; }
-}
-
-function solveEquation(expr){
-  try{
-    const [L,R] = expr.split('=').map(t);
-    const varMatch = (L+R).match(/[a-zA-Z]/);
-    const v = varMatch ? varMatch[0] : 'x';
-    const poly = `${L}-(${R})`;
-    const sol = nerdamer.solve(poly, v); // solve L-R=0 for v
-    const steps = [
-      `Parse → ${expr}`,
-      `Move all terms to one side: ${poly} = 0`,
-      `Solve for ${v}`
-    ];
-    return {steps, answer: sol.toString()};
-  }catch(e){
-    return {steps:[`Tried equation solve for "${expr}"`], answer:'Unable to solve here'};
-  }
-}
-
-function derivative(expr){
-  try{
-    const xexpr = expr.replace(/^diff\(/i,'').replace(/\)$/, '').replace(/^d\/dx\s*/i,'');
-    const ans = nerdamer.diff(xexpr,'x').toString();
-    return {steps:[`Parse → ${xexpr}`, 'Apply derivative rules','Simplify'], answer: ans};
-  }catch(e){ return null; }
-}
-
-function integral(expr){
-  try{
-    const inside = expr.replace(/^int\(/i,'').replace(/\)$/, '').replace(/^∫/,'');
-    const ans = nerdamer.integrate(inside,'x').toString();
-    return {steps:[`Parse → ${inside}`, 'Integrate term-by-term','Add C'], answer: ans + ' + C'};
-  }catch(e){
-    return {steps:[`Parse → ${expr}`, 'Needs special function or backend'], answer:'(Cannot integrate here)'}; 
-  }
-}
-
-function limitEval(expr){
-  const m = expr.match(/limit\((.*),\s*([a-zA-Z]),\s*([^,)]+)\)/i);
-  if(!m) return null;
-  try{
-    const ans = nerdamer(`limit(${m[1]}, ${m[2]}, ${m[3]})`).toString();
-    return {steps:[`Parse → ${expr}`, 'Apply limit rules / substitution'], answer: ans};
-  }catch(e){ return null; }
-}
-
-function matrixOps(expr){
-  try{
-    if (/^det/i.test(expr)){
-      const M = JSON.parse(expr.replace(/^det/i,''));
-      const det = math.det(M);
-      return {steps:['Compute determinant'], answer: String(det)};
+    function go(){
+      const raw = document.getElementById('q').value;
+      const expr = sanitize(raw);
+      try{
+        const val = math.evaluate(expr);
+        document.getElementById('out').textContent =
+          `Parsed: ${expr}\nAnswer: ${val}`;
+      }catch(e){
+        document.getElementById('out').textContent = 'Error: ' + e.message;
+      }
     }
-    if (/^inverse/i.test(expr)){
-      const M = JSON.parse(expr.replace(/^inverse/i,''));
-      const inv = math.inv(M);
-      return {steps:['Compute inverse (Gauss/adjoint)'], answer: JSON.stringify(inv)};
-    }
-  }catch(e){}
-  return {steps:['Matrix requested'], answer:'Try: det[[1,2],[3,4]]'};
-}
-
-/********** ROUTER **********/
-async function solve(){
-  const forced = document.getElementById('topic').value;
-  let raw = t(document.getElementById('question').value);
-  if(!raw) return show([], 'Enter a math expression');
-
-  const expr = sanitize(raw);
-  const type = classify(expr, forced);
-
-  let res = null;
-  if (type==='arithmetic') res = arithmeticEval(expr);
-  else if (type==='algebra') res = algebraSteps(expr);
-  else if (type==='equation') res = solveEquation(expr);
-  else if (type==='derivative') res = derivative(expr);
-  else if (type==='integral') res = integral(expr);
-  else if (type==='limit') res = limitEval(expr);
-  else if (type==='matrix') res = matrixOps(expr);
-
-  if (!res || !res.answer) res = {steps:[`Parse → ${expr}`, 'Could not solve on device'], answer:'Try a different form or we add backend next.'};
-  show(res.steps, res.answer);
-}
-</script>
+  </script>
+</body>
+</html>
