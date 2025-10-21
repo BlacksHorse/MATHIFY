@@ -1,61 +1,172 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mathify - Step-by-Step Math Solver</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 40px;
-      background: #f8f9fa;
-    }
-    input {
-      padding: 8px;
-      width: 250px;
-      margin-top: 10px;
-    }
-    button {
-      padding: 8px 12px;
-      background: #007bff;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-left: 8px;
-    }
-    pre {
-      background: #fff;
-      padding: 15px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      width: 80%;
-      margin: 20px auto;
-      text-align: left;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mathify — SHS & Uni Solver</title>
+
+<!-- UI styles -->
+<style>
+  body{font-family:system-ui,Arial;padding:24px;max-width:900px;margin:auto;background:#f6f7fb}
+  h1{margin:0 0 8px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+  input,select,button,textarea{padding:10px;border:1px solid #d9dbe3;border-radius:8px}
+  input,textarea{flex:1}
+  button{background:#1f6feb;color:#fff;border:none;cursor:pointer}
+  .card{background:#fff;border:1px solid #e6e8ef;border-radius:12px;padding:14px;margin-top:14px}
+  .muted{color:#667085;font-size:.9rem}
+  .step{border-left:3px solid #1f6feb;padding-left:10px;margin:8px 0}
+  pre{white-space:pre-wrap;word-wrap:break-word;margin:0}
+</style>
+
+<!-- Render LaTeX nicely (optional for later) -->
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<!-- Libraries: mathjs + nerdamer + mathsteps -->
+<script src="https://cdn.jsdelivr.net/npm/mathjs@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/nerdamer.core.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Algebra.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Calculus.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Solve.js"></script>
+<script src="https://unpkg.com/mathsteps/dist/mathsteps.min.js"></script>
 </head>
 <body>
-  <h1>Welcome to Mathify 🔢</h1>
-  <p>Enter your math question below:</p>
-  <input id="question" placeholder="e.g. 2x^2 + 3x + 1 = 0">
-  <button onclick="solve()">Solve</button>
-  <pre id="result"></pre>
+  <h1>Mathify 🔢</h1>
+  <div class="muted">SHS + University math with step-by-step explanations (client-side).</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/mathjs@11"></script>
-  <script>
-  function solve(){
-    const q = document.getElementById('question').value;
-    try{
-      const result = math.simplify(q).toString();
-      document.getElementById('result').textContent = 'Result: ' + result;
-    }catch(e){
-      document.getElementById('result').textContent = 'Error: ' + e.message;
+  <div class="row">
+    <select id="topic">
+      <option value="auto" selected>Auto detect</option>
+      <option value="algebra">Algebra (simplify / factor / expand)</option>
+      <option value="equation">Solve equation (e.g., 2x^2+3x+1=0)</option>
+      <option value="derivative">Derivative (e.g., diff(x^3+2x))</option>
+      <option value="integral">Integral (e.g., int(2x^2+3x+1))</option>
+      <option value="limit">Limit (e.g., limit((sin x)/x, x, 0))</option>
+      <option value="matrix">Matrix (det/inv small)</option>
+    </select>
+    <input id="question" placeholder="Type math... e.g. 2x^2 + 3x + 1 = 0" />
+    <button onclick="solve()">Solve</button>
+  </div>
+
+  <div class="card">
+    <div class="muted">Steps</div>
+    <div id="steps"></div>
+  </div>
+
+  <div class="card">
+    <div class="muted">Answer</div>
+    <pre id="answer"></pre>
+  </div>
+
+<script>
+function t(s){ return String(s).trim(); }
+
+function classify(expr, forced){
+  if (forced && forced!=='auto') return forced;
+  if (/^diff\(|d\/dx/i.test(expr)) return 'derivative';
+  if (/^int\(|∫/i.test(expr)) return 'integral';
+  if (/limit\(/i.test(expr)) return 'limit';
+  if (/\[.*\]/.test(expr) || /matrix|det|inverse/i.test(expr)) return 'matrix';
+  if (/=/.test(expr)) return 'equation';
+  return 'algebra';
+}
+
+function show(steps=[], ans=''){
+  const box = document.getElementById('steps');
+  box.innerHTML = steps.map(s=>`<div class="step">${s}</div>`).join('') || '<div class="muted">No steps.</div>';
+  document.getElementById('answer').textContent = ans;
+}
+
+function algebraSteps(expr){
+  try{
+    const out = mathsteps.simplifyExpression(expr);
+    if (out.length){
+      const steps = out.map(s => `${s.changeType.replace(/_/g,' ')} → ${s.newExpression}`);
+      return {steps, answer: out.at(-1).newExpression.toString()};
     }
+  }catch(e){}
+  // fallback to nerdamer simplify
+  try{
+    const ans = nerdamer(expr).toString();
+    return {steps:['Symbolic simplification (nerdamer)'], answer: ans};
+  }catch(e){
+    return null;
   }
-  </script>
+}
+
+function solveEquation(expr){
+  try{
+    // supports forms like 2x^2+3x+1=0
+    const [L,R] = expr.split('=');
+    const sol = nerdamer.solveEquations([[L, R]]); // returns array of [var,val]
+    const steps = ['Move all terms to one side', 'Factor/solve', 'Isolate variable'];
+    return {steps, answer: JSON.stringify(sol)};
+  }catch(e){ return null; }
+}
+
+function derivative(expr){
+  try{
+    const xexpr = expr.replace(/^diff\(/i,'').replace(/\)$/, '').replace(/^d\/dx\s*/i,'');
+    const ans = nerdamer.diff(xexpr,'x').toString();
+    return {steps:['Apply derivative rules (power/product/chain where needed)','Simplify'], answer: ans};
+  }catch(e){ return null; }
+}
+
+function integral(expr){
+  try{
+    const inside = expr.replace(/^int\(/i,'').replace(/\)$/, '').replace(/^∫/,'');
+    const ans = nerdamer.integrate(inside,'x').toString();
+    return {steps:['Integrate term-by-term (if elementary)','Add constant C'], answer: ans + ' + C'};
+  }catch(e){
+    return {steps:['This may need special functions or backend CAS'], answer:'(Unable to integrate here)'}; 
+  }
+}
+
+function limitEval(expr){
+  // format: limit(f(x), x, a)
+  const m = expr.match(/limit\((.*),\s*([a-zA-Z]),\s*([^,)]+)\)/i);
+  if(!m) return null;
+  try{
+    const ans = nerdamer(`limit(${m[1]}, ${m[2]}, ${m[3]})`).toString();
+    return {steps:['Apply limit rules / substitution','Use identities if needed'], answer: ans};
+  }catch(e){ return null; }
+}
+
+function matrixOps(expr){
+  // quick demo: det[[1,2],[3,4]]  or inverse[[1,2],[3,4]]
+  try{
+    if (/^det/i.test(expr)){
+      const M = JSON.parse(expr.replace(/^det/i,'').replace(/=/g,''));
+      const det = math.det(M);
+      return {steps:['Compute determinant'], answer: String(det)};
+    }
+    if (/^inverse/i.test(expr)){
+      const M = JSON.parse(expr.replace(/^inverse/i,''));
+      const inv = math.inv(M);
+      return {steps:['Compute inverse using adj/gauss'], answer: JSON.stringify(inv)};
+    }
+  }catch(e){}
+  return {steps:['Matrix requested'], answer:'Try: det[[1,2],[3,4]] or inverse[[1,2],[3,4]]'};
+}
+
+async function solve(){
+  const forced = document.getElementById('topic').value;
+  const expr = t(document.getElementById('question').value);
+  if(!expr) return show([], 'Enter a math expression');
+
+  const type = classify(expr, forced);
+  let res = null;
+
+  if (type==='algebra')   res = algebraSteps(expr);
+  if (type==='equation')  res = solveEquation(expr);
+  if (type==='derivative')res = derivative(expr);
+  if (type==='integral')  res = integral(expr);
+  if (type==='limit')     res = limitEval(expr);
+  if (type==='matrix')    res = matrixOps(expr);
+
+  if (!res) res = {steps:['Could not solve on device'], answer:'Try a simpler form, or we add backend next.'};
+  show(res.steps, res.answer);
+}
+</script>
 </body>
 </html>
