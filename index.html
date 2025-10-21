@@ -1,18 +1,30 @@
 <script>
 function t(s){ return String(s||'').trim(); }
 
-// Replace unicode ops and add implicit "*"
+/* --- Robust sanitizer ---
+   - Converts ×, ⋅, ·, • or digit x digit  → *
+   - Converts ÷ or :  → /
+   - Inserts * for 2y, 3(x+1), )(  */
 function sanitize(expr){
-  let e = String(expr)
-    .replace(/×|x(?=\s*\d|\()/gi,'*')   // × or x as multiply
-    .replace(/÷/g,'/')                  // ÷ to /
-    .replace(/–/g,'-');                 // en-dash to minus
-  // insert * for 2y, 3(x+1), )(
-  e = e.replace(/(\d)\s*([a-zA-Z])/g, '$1*$2')
-       .replace(/([a-zA-Z])\s*(\d)/g, '$1*$2')
-       .replace(/(\d)\s*\(/g, '$1*(')
-       .replace(/\)\s*\(/g, ')*(');
-  return e;
+  let e = String(expr);
+
+  // 1) normalize unicode operators
+  e = e
+    .replace(/[÷:]/g, "/")           // division
+    .replace(/–|−/g, "-");           // minus variants
+
+  // 2) explicit multiply when it's number x number OR ) x ( OR number x (
+  // handle x/×/⋅/·/• between numeric or bracket contexts
+  e = e.replace(/(\d|\))\s*[xX×⋅·•]\s*(\d|\()/g, '$1*$2');
+
+  // 3) keep 'x' as a variable elsewhere, but fix implicit multiplications
+  e = e
+    .replace(/(\d)\s*([a-zA-Z])/g, '$1*$2')  // 2y -> 2*y
+    .replace(/([a-zA-Z])\s*(\d)/g, '$1*$2')  // y2 -> y*2
+    .replace(/(\d)\s*\(/g, '$1*(')           // 3( -> 3*(
+    .replace(/\)\s*\(/g, ')*(');             // )( -> )*(
+
+  return e.trim();
 }
 
 function classify(expr, forced){
@@ -22,8 +34,7 @@ function classify(expr, forced){
   if (/limit\(/i.test(expr)) return 'limit';
   if (/\[.*\]/.test(expr) || /matrix|det|inverse/i.test(expr)) return 'matrix';
   if (/=/.test(expr)) return 'equation';
-  // no letters & no "=" → arithmetic
-  if (!/[a-zA-Z]/.test(expr)) return 'arithmetic';
+  if (!/[a-zA-Z]/.test(expr)) return 'arithmetic';  // pure numbers/operators
   return 'algebra';
 }
 
@@ -39,8 +50,9 @@ function show(steps=[], ans=''){
 
 function arithmeticEval(expr){
   try{
+    // math.evaluate handles + - * / ^ ( ) and order of ops
     const val = math.evaluate(expr);
-    return {steps:[`Compute ${expr}`], answer: String(val)};
+    return {steps:[`Parse → ${expr}`, `Compute value`], answer: String(val)};
   }catch(e){ return null; }
 }
 
@@ -48,32 +60,33 @@ function algebraSteps(expr){
   try{
     const out = mathsteps.simplifyExpression(expr);
     if (out.length){
-      const steps = out.map(s => `${s.changeType.replace(/_/g,' ')} → ${s.newExpression}`);
+      const steps = [`Parse → ${expr}`].concat(
+        out.map(s => `${s.changeType.replace(/_/g,' ')} → ${s.newExpression}`)
+      );
       return {steps, answer: out.at(-1).newExpression.toString()};
     }
   }catch(e){}
   try{
     const ans = nerdamer(expr).toString();
-    return {steps:['Symbolic simplification (nerdamer)'], answer: ans};
+    return {steps:[`Parse → ${expr}`, 'Symbolic simplification (nerdamer)'], answer: ans};
   }catch(e){ return null; }
 }
 
 function solveEquation(expr){
   try{
     const [L,R] = expr.split('=').map(t);
-    // detect main variable (first letter in expression); default x
     const varMatch = (L+R).match(/[a-zA-Z]/);
     const v = varMatch ? varMatch[0] : 'x';
-
-    // Nerdamer wants explicit "*"
-    const sol = nerdamer.solve(`${L}-(${R})`, v); // solve L-R = 0 for v
+    const poly = `${L}-(${R})`;
+    const sol = nerdamer.solve(poly, v); // solve L-R=0 for v
     const steps = [
-      'Move all terms to one side: ' + `${L} - (${R}) = 0`,
+      `Parse → ${expr}`,
+      `Move all terms to one side: ${poly} = 0`,
       `Solve for ${v}`
     ];
     return {steps, answer: sol.toString()};
-  }catch(e){ 
-    return {steps:['Tried equation solve (nerdamer)'], answer:'Unable to solve here'};
+  }catch(e){
+    return {steps:[`Tried equation solve for "${expr}"`], answer:'Unable to solve here'};
   }
 }
 
@@ -81,7 +94,7 @@ function derivative(expr){
   try{
     const xexpr = expr.replace(/^diff\(/i,'').replace(/\)$/, '').replace(/^d\/dx\s*/i,'');
     const ans = nerdamer.diff(xexpr,'x').toString();
-    return {steps:['Apply derivative rules','Simplify'], answer: ans};
+    return {steps:[`Parse → ${xexpr}`, 'Apply derivative rules','Simplify'], answer: ans};
   }catch(e){ return null; }
 }
 
@@ -89,9 +102,9 @@ function integral(expr){
   try{
     const inside = expr.replace(/^int\(/i,'').replace(/\)$/, '').replace(/^∫/,'');
     const ans = nerdamer.integrate(inside,'x').toString();
-    return {steps:['Integrate term-by-term','Add C'], answer: ans + ' + C'};
+    return {steps:[`Parse → ${inside}`, 'Integrate term-by-term','Add C'], answer: ans + ' + C'};
   }catch(e){
-    return {steps:['Needs special function or backend'], answer:'(Cannot integrate here)'}; 
+    return {steps:[`Parse → ${expr}`, 'Needs special function or backend'], answer:'(Cannot integrate here)'}; 
   }
 }
 
@@ -100,7 +113,7 @@ function limitEval(expr){
   if(!m) return null;
   try{
     const ans = nerdamer(`limit(${m[1]}, ${m[2]}, ${m[3]})`).toString();
-    return {steps:['Apply limit rules / substitution'], answer: ans};
+    return {steps:[`Parse → ${expr}`, 'Apply limit rules / substitution'], answer: ans};
   }catch(e){ return null; }
 }
 
@@ -123,10 +136,10 @@ function matrixOps(expr){
 /********** ROUTER **********/
 async function solve(){
   const forced = document.getElementById('topic').value;
-  let expr = t(document.getElementById('question').value);
-  if(!expr) return show([], 'Enter a math expression');
+  let raw = t(document.getElementById('question').value);
+  if(!raw) return show([], 'Enter a math expression');
 
-  expr = sanitize(expr);
+  const expr = sanitize(raw);
   const type = classify(expr, forced);
 
   let res = null;
@@ -138,7 +151,7 @@ async function solve(){
   else if (type==='limit') res = limitEval(expr);
   else if (type==='matrix') res = matrixOps(expr);
 
-  if (!res || !res.answer) res = {steps:['Could not solve on device'], answer:'Try a different form or we add backend next.'};
+  if (!res || !res.answer) res = {steps:[`Parse → ${expr}`, 'Could not solve on device'], answer:'Try a different form or we add backend next.'};
   show(res.steps, res.answer);
 }
 </script>
