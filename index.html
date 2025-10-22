@@ -1,111 +1,150 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Mathify 📘 Step-by-Step v15 (Topics)</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mathify 📘 Step-by-Step v14 (Textbook Steps)</title>
 <style>
-  :root{--blue:#1f6feb;--green:#059669;--muted:#6b7280;}
-  body{font-family:system-ui,Arial;max-width:780px;margin:0 auto;padding:24px;background:#f6f7fb}
+  body{font-family:system-ui,Arial;max-width:720px;margin:0 auto;padding:24px;background:#f6f7fb}
   h1{margin:0 0 8px}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:10px}
-  select,input{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:10px;margin:6px 0}
-  button{padding:10px 14px;border:0;border-radius:10px;background:var(--blue);color:#fff;cursor:pointer}
-  .muted{color:var(--muted)}
-  .tag{display:inline-block;padding:6px 10px;border-radius:999px;border:1px solid #d1d5db;background:#fff;margin:4px 6px 0 0;cursor:pointer}
-  .tag:hover{border-color:#c0c4cc}
-  .step-box{background:#e8f0fe;padding:10px 12px;margin:8px 0;border-left:6px solid var(--blue);border-radius:10px}
-  .answer-box{background:#d1fae5;padding:10px 12px;margin-top:10px;border-left:6px solid var(--green);border-radius:10px;font-weight:bold}
+  .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px}
+  input{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:10px;margin:8px 0}
+  button{padding:10px 14px;border:0;border-radius:10px;background:#1f6feb;color:#fff;cursor:pointer}
+  .step-box{background:#e8f0fe;padding:10px 12px;margin:8px 0;border-left:6px solid #1f6feb;border-radius:10px}
+  .answer-box{background:#d1fae5;padding:10px 12px;margin-top:10px;border-left:6px solid #059669;border-radius:10px;font-weight:bold}
   .warn{background:#fff7ed;border-left-color:#ea580c}
-  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#eef2ff;border:1px solid #dbe1ff}
-  .hide{display:none}
+  .muted{color:#6b7280}
   code{background:#eef2ff;padding:0 4px;border-radius:6px}
 </style>
+
+<!-- math.js (browser build) -->
 <script src="https://unpkg.com/mathjs@11.8.0/lib/browser/math.js"></script>
 </head>
 <body>
-  <h1>Mathify 📘 Step-by-Step v15</h1>
-  <p class="muted">Choose a topic (SHS or University), tap an example, then solve with clear steps.</p>
+  <h1>Mathify 📘 Step-by-Step v14</h1>
+  <p class="muted">Linear + Quadratic solver with teacher-style steps</p>
 
-  <!-- Topic + extra options -->
   <div class="card">
-    <div class="row">
-      <div style="flex:1 1 320px">
-        <label class="muted">Topic</label>
-        <select id="topic"></select>
-      </div>
-      <div id="degWrap" class="pill hide">
-        <input type="checkbox" id="useDeg" />
-        <label for="useDeg">Trigonometry: use degrees (e.g., sin(30°))</label>
-      </div>
-    </div>
-    <div id="topicDesc" class="muted" style="margin-top:6px"></div>
-  </div>
-
-  <!-- Examples -->
-  <div class="card">
-    <div class="muted">Examples</div>
-    <div id="examples" class="row"></div>
-  </div>
-
-  <!-- Solver -->
-  <div class="card">
-    <input id="q" placeholder="Type a problem, or tap an example above" />
-    <div class="row">
-      <button onclick="compute()">Solve</button>
-      <button style="background:#475569" onclick="clearOut()">Clear</button>
-      <button style="background:#0f766e" onclick="copySteps()">Copy steps</button>
-    </div>
-    <div id="out" style="margin-top:10px"></div>
+    <input id="q" placeholder="Try: 2(y+2)=12, 2y+10=4, 2x^2+3x+1=0">
+    <button onclick="compute()">Solve</button>
+    <div id="out"></div>
   </div>
 
 <script>
-/* ----------------------- Topic catalog ----------------------- */
-const TOPICS = {
-  "SHS": {
-    "Basic Arithmetic": {
-      desc: "Add, subtract, multiply, divide; fractions, powers.",
-      ex: ["10÷2", "2×3", "5^2", "3(4+2)"]
-    },
-    "Linear Equations": {
-      desc: "Solve for x, y in equations of the form ax + b = c.",
-      ex: ["2y+10=4", "3x-9=0", "2(y+2)=12"]
-    },
-    "Quadratics": {
-      desc: "Equations ax² + bx + c = 0 with formula steps.",
-      ex: ["x^2+3x+2=0", "2x^2+3x+1=0", "x^2+4x+4=0"]
-    },
-    "Algebraic Expressions": {
-      desc: "Expand & simplify algebraic forms.",
-      ex: ["(x+2)(x+3)", "2(x+1)^2", "3x(x-4)"]
-    },
-    "Simultaneous Equations": {
-      desc: "Systems of linear equations (coming soon).",
-      ex: ["2x+y=7 & x-y=1"]
-    },
-    "Functions": {
-      desc: "Evaluate/simplify functions.",
-      ex: ["f(x)=x^2+3x+1; f(2)"]
-    },
-    "Trigonometry": {
-      desc: "Sine, cosine, tangent; set degrees option if needed.",
-      ex: ["sin(30)", "cos(60)", "tan(45)"]
-    },
-    "Geometry & Mensuration": {
-      desc: "Areas, perimeters, volumes via formulas.",
-      ex: ["pi*5^2", "2*pi*7", "(1/3)*pi*3^2*10"]
-    },
-    "Sequences & Series": {
-      desc: "Arithmetic/Geometric terms & sums.",
-      ex: ["a1=3,d=2; a5=a1+(5-1)d", "S5=(5/2)(2*3+(5-1)2)"]
-    },
-    "Probability & Statistics": {
-      desc: "Basic probability & averages.",
-      ex: ["(3 choose 2)", "mean(2,4,6,8)"]
+function sanitize(expr){
+  let e = String(expr||'').trim();
+  e = e.replace(/[÷:]/g,'/').replace(/–|−/g,'-');
+  e = e.replace(/(\d|\))\s*[xX×⋅·•]\s*(\d|\()/g,'$1*$2');
+  e = e.replace(/(\d)\s*([a-zA-Z])/g,'$1*$2')
+       .replace(/([a-zA-Z])\s*(\d)/g,'$1*$2')
+       .replace(/(\d)\s*\(/g,'$1*(')
+       .replace(/\)\s*\(/g,')*(');
+  return e;
+}
+function add(out, html){ out.innerHTML += html; }
+function fmt(n){ return Number.isFinite(n) ? (Math.round(n*1e10)/1e10).toString() : String(n); }
+function num(s){ if(s===''||s==='+')return 1; if(s==='-')return -1; return parseFloat(s); }
+
+function extractQuadraticCoeffs(poly, variable){
+  const p = poly.replace(/\s+/g,'').replace(/\*\*/g,'^');
+  let a=0,b=0,c=0;
+  const ax2=new RegExp(`([+\\-]?\\d*\\.?\\d*)\\*?${variable}\\^2`);
+  const bx=new RegExp(`([+\\-]?\\d*\\.?\\d*)\\*?${variable}(?!\\^)`);
+  const ma=p.match(ax2); if(ma) a=num(ma[1]);
+  const mb=p.match(bx);  if(mb) b=num(mb[1]);
+  let rest=p.replace(ax2,'').replace(bx,'');
+  rest = rest || '0';
+  c = Number(math.evaluate(rest));
+  return {a,b,c};
+}
+
+function solveLinear(e, variable, out){
+  // e like "2*x+6" or "-3*y-9"
+  const clean = e.replace(/\s+/g,'');
+  const rx = new RegExp(`([+\\-]?\\d*\\.?\\d*)\\*?${variable}([+\\-].+)?$`);
+  const m = clean.match(rx);
+  if(!m){ add(out, `<div class='answer-box warn'>Could not read a linear form in ${variable}.</div>`); return; }
+  const a = num(m[1]);
+  const rest = (m[2]||'');
+  const b = rest ? Number(math.evaluate(rest)) : 0;
+
+  // Step 3: subtract b from both sides
+  add(out, `<div class='step-box'>Step 3️⃣ Subtract <code>${fmt(b)}</code> from both sides → <code>${fmt(a)}${variable} = ${fmt(-b)}</code></div>`);
+  // Step 4: divide by a
+  add(out, `<div class='step-box'>Step 4️⃣ Divide both sides by <code>${fmt(a)}</code> → <code>${variable} = ${fmt((-b)/a)}</code></div>`);
+  add(out, `<div class='answer-box'>Final Answer: ${variable} = ${fmt((-b)/a)}</div>`);
+}
+
+function solveQuadratic(e, variable, out){
+  const {a,b,c} = extractQuadraticCoeffs(e, variable);
+  if (Math.abs(a) < 1e-12) { solveLinear(e, variable, out); return; }
+
+  add(out, `<div class='step-box'>Step 3️⃣ Identify coefficients → <code>a=${fmt(a)}, b=${fmt(b)}, c=${fmt(c)}</code></div>`);
+  const D = b*b - 4*a*c;
+  add(out, `<div class='step-box'>Step 4️⃣ Compute discriminant → <code>D = b² − 4ac = ${fmt(D)}</code></div>`);
+  add(out, `<div class='step-box'>Step 5️⃣ Use quadratic formula → <code>${variable} = (-b ± √D) / (2a)</code></div>`);
+
+  if (D > 0){
+    const r = Math.sqrt(D);
+    const x1 = (-b + r)/(2*a);
+    const x2 = (-b - r)/(2*a);
+    add(out, `<div class='answer-box'>Roots: ${variable} = ${fmt(x1)},  ${variable} = ${fmt(x2)}</div>`);
+  } else if (Math.abs(D) < 1e-12){
+    const x = (-b)/(2*a);
+    add(out, `<div class='answer-box'>Double root: ${variable} = ${fmt(x)}</div>`);
+  } else {
+    const r = Math.sqrt(-D);
+    const real = (-b)/(2*a);
+    const imag = r/(2*a);
+    add(out, `<div class='answer-box'>Complex roots: ${variable} = ${fmt(real)} ± ${fmt(imag)}i</div>`);
+  }
+}
+
+function compute(){
+  const raw = document.getElementById('q').value || '';
+  const expr = sanitize(raw);
+  const out = document.getElementById('out');
+  out.innerHTML = `<div class="step-box">Problem: <code>${expr}</code></div>`;
+
+  if (typeof math === "undefined"){
+    add(out, `<div class='step-box warn'>⚠️ Math.js failed to load.</div>`); return;
+  }
+
+  try{
+    if (expr.includes('=')){
+      const [L,R] = expr.split('=');
+      const variable = (L+R).match(/[a-zA-Z]/)?.[0] || 'x';
+
+      // Step 1: simplify & expand
+      let left  = math.simplify(math.expand(math.simplify(L))).toString();
+      let right = math.simplify(math.expand(math.simplify(R))).toString();
+      add(out, `<div class='step-box'>Step 1️⃣ Expand & simplify each side → <code>${left} = ${right}</code></div>`);
+
+      // Step 2: move terms to one side
+      const equation = math.simplify(math.expand(`${left}-(${right})`)).toString();
+      add(out, `<div class='step-box'>Step 2️⃣ Move all terms to one side → <code>${equation} = 0</code></div>`);
+
+      if (new RegExp(`${variable}\\^2`).test(equation)) {
+        solveQuadratic(equation, variable, out);
+      } else {
+        solveLinear(equation, variable, out);
+      }
+      return;
     }
-  },
-  "University": {
+
+    // Expressions / arithmetic
+    const simplified = math.simplify(expr).toString();
+    const value = math.evaluate(expr);
+    add(out, `<div class='step-box'>Step 1️⃣ Simplify → <code>${simplified}</code></div>`);
+    add(out, `<div class='answer-box'>Final Answer = ${fmt(value)}</div>`);
+
+  } catch (err){
+    add(out, `<div class='answer-box warn'>Error: ${err.message}</div>`);
+  }
+}
+</script>
+</body>
+</html>  "University": {
     "Calculus – Limits": {
       desc: "Basic limit evaluation.",
       ex: ["limit((x^2-1)/(x-1), x, 1)"]
