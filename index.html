@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mathify 📘 Step-by-Step v6</title>
+<title>Mathify 📘 Step-by-Step v7</title>
 <style>
   body{font-family:system-ui,Arial;max-width:720px;margin:0 auto;padding:24px;background:#f6f7fb}
   h1{margin:0 0 8px}
@@ -15,15 +15,13 @@
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/mathjs@11/lib/browser/math.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/nerdamer.core.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Solve.js"></script>
 </head>
 <body>
-  <h1>Mathify 📘 Step-by-Step v6</h1>
-  <p class="muted">Now shows steps for SHS + University math</p>
+  <h1>Mathify 📘 Step-by-Step v7</h1>
+  <p class="muted">Now solves with detailed steps for SHS + University levels</p>
 
   <div class="card">
-    <input id="q" placeholder="Example: 2y + 10 = 4 or 10÷2">
+    <input id="q" placeholder="Example: 2y + 10 = 4 or 2x^2 + 3x + 1 = 0">
     <button onclick="compute()">Solve</button>
     <pre id="out"></pre>
   </div>
@@ -48,35 +46,28 @@ function compute(){
 
   try {
     if (expr.includes('=')) {
-      // ---- EQUATION ----
+      // EQUATION SOLVER
       const [L,R] = expr.split('=');
       const variable = (L+R).match(/[a-zA-Z]/)?.[0] || 'x';
-      const poly = `${L}-(${R})`;
+      const left = math.parse(L);
+      const right = math.parse(R);
+      const eq = new math.EqualNode(left, right);
+      const sol = math.solve(eq, variable);
 
-      // Try linear first
-      const sol = nerdamer.solve(poly, variable);
-      const result = sol.toString();
-
-      // Try to show simple linear steps
-      if (/^[\d\+\-\*\/]*[a-zA-Z]/.test(L)) {
-        // Example: 2y + 10 = 4
-        const left = L.match(/([0-9]*)\*?[a-zA-Z]/);
-        if (left) {
-          const coeff = parseFloat(left[1] || 1);
-          const rightNum = math.evaluate(R) - (math.evaluate(L.replace(/[0-9]*\*?[a-zA-Z]/,'')) || 0);
-          steps += `Step 1: Move constants to right side → ${coeff}${variable} = ${rightNum}\n`;
-          steps += `Step 2: Divide both sides by ${coeff} → ${variable} = ${rightNum/coeff}\n`;
-        }
-      }
-      steps += `Final Answer: ${variable} = ${result}`;
+      // STEP DISPLAY
+      steps += `Step 1: Move all terms to one side → ${math.simplify(L + "-(" + R + ")").toString()} = 0\n`;
+      steps += `Step 2: Simplify and isolate ${variable}\n`;
+      steps += `Final Answer: ${variable} = ${sol.toString()}`;
       out.textContent = steps;
       return;
     }
 
-    // ---- SIMPLE ARITHMETIC ----
+    // SIMPLE EXPRESSION
     const val = math.evaluate(expr);
-    steps += `Step 1: Evaluate → ${val}\nFinal Answer: ${val}`;
+    steps += `Step 1: Evaluate the expression → ${val}\n`;
+    steps += `Final Answer: ${val}`;
     out.textContent = steps;
+
   } catch (err) {
     out.textContent = `Error: ${err.message}`;
   }
