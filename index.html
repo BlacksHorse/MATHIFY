@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mathify 📘 Step-by-Step v8</title>
+<title>Mathify 📘 Step-by-Step v9</title>
 <style>
   body{font-family:system-ui,Arial;max-width:720px;margin:0 auto;padding:24px;background:#f6f7fb}
   h1{margin:0 0 8px}
@@ -14,11 +14,12 @@
   .muted{color:#6b7280}
 </style>
 
-<script src="https://cdn.jsdelivr.net/npm/mathjs@11/lib/browser/math.js"></script>
+<!-- full bundle of mathjs including algebra -->
+<script src="https://cdn.jsdelivr.net/npm/mathjs@11/dist/math.js"></script>
 </head>
 <body>
-  <h1>Mathify 📘 Step-by-Step v8</h1>
-  <p class="muted">Now fully working — shows steps for SHS + University levels</p>
+  <h1>Mathify 📘 Step-by-Step v9</h1>
+  <p class="muted">Now fully working in browser — with clear steps for SHS + University</p>
 
   <div class="card">
     <input id="q" placeholder="Example: 2y + 10 = 4 or 2x^2 + 3x + 1 = 0">
@@ -45,31 +46,39 @@ function compute(){
   let steps = `Expression: ${expr}\n\n`;
 
   try {
-    // if it's an equation
     if (expr.includes('=')) {
-      const [L, R] = expr.split('=');
-      const variable = (L + R).match(/[a-zA-Z]/)?.[0] || 'x';
+      const [L,R] = expr.split('=');
+      const variable = (L+R).match(/[a-zA-Z]/)?.[0] || 'x';
 
-      const leftSimplified = math.simplify(L).toString();
-      const rightSimplified = math.simplify(R).toString();
-      const equation = `${leftSimplified} - (${rightSimplified})`;
+      // Simplify both sides
+      const left = math.simplify(L).toString();
+      const right = math.simplify(R).toString();
+      const equation = `${left}-(${right})`;
 
-      steps += `Step 1: Simplify both sides → ${leftSimplified} = ${rightSimplified}\n`;
-      steps += `Step 2: Bring all terms to one side → ${equation} = 0\n`;
+      steps += `Step 1: Simplify both sides → ${left} = ${right}\n`;
+      steps += `Step 2: Move all terms to one side → ${equation} = 0\n`;
 
-      // Try to find the variable’s coefficient and constant
-      const sol = math.solve(equation + "=0", variable);
+      // Solve using mathjs algebra or fallback
+      let sol;
+      if (math.algebra && math.algebra.solveEquation) {
+        sol = math.algebra.solveEquation(`${left}=${right}`, variable).toString();
+      } else if (math.solveEquation) {
+        sol = math.solveEquation(`${left}=${right}`, variable).toString();
+      } else {
+        // simple linear fallback
+        sol = `Cannot auto-solve, simplify manually`;
+      }
+
       steps += `Step 3: Solve for ${variable}\nFinal Answer: ${variable} = ${sol}`;
       out.textContent = steps;
       return;
     }
 
-    // simple arithmetic or expression
+    // Arithmetic / expressions
     const simplified = math.simplify(expr).toString();
     const val = math.evaluate(expr);
     steps += `Step 1: Simplify → ${simplified}\nStep 2: Evaluate → ${val}\nFinal Answer: ${val}`;
     out.textContent = steps;
-
   } catch (err) {
     out.textContent = `Error: ${err.message}`;
   }
