@@ -1,38 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mathify 📘 Step-by-Step v14 (Textbook Steps)</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mathify 📘 Step-by-Step v15-C (Topics + Compatibility)</title>
 <style>
-  body{font-family:system-ui,Arial;max-width:720px;margin:0 auto;padding:24px;background:#f6f7fb}
+  :root{--blue:#1f6feb;--green:#059669;--muted:#6b7280;}
+  body{font-family:system-ui,Arial;max-width:780px;margin:0 auto;padding:24px;background:#f6f7fb}
   h1{margin:0 0 8px}
-  .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px}
-  input{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:10px;margin:8px 0}
-  button{padding:10px 14px;border:0;border-radius:10px;background:#1f6feb;color:#fff;cursor:pointer}
-  .step-box{background:#e8f0fe;padding:10px 12px;margin:8px 0;border-left:6px solid #1f6feb;border-radius:10px}
-  .answer-box{background:#d1fae5;padding:10px 12px;margin-top:10px;border-left:6px solid #059669;border-radius:10px;font-weight:bold}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:10px}
+  select,input{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:10px;margin:6px 0}
+  button{padding:10px 14px;border:0;border-radius:10px;background:var(--blue);color:#fff;cursor:pointer}
+  .muted{color:var(--muted)}
+  .tag{display:inline-block;padding:6px 10px;border-radius:999px;border:1px solid #d1d5db;background:#fff;margin:4px 6px 0 0;cursor:pointer}
+  .tag:hover{border-color:#c0c4cc}
+  .step-box{background:#e8f0fe;padding:10px 12px;margin:8px 0;border-left:6px solid var(--blue);border-radius:10px}
+  .answer-box{background:#d1fae5;padding:10px 12px;margin-top:10px;border-left:6px solid var(--green);border-radius:10px;font-weight:bold}
   .warn{background:#fff7ed;border-left-color:#ea580c}
-  .muted{color:#6b7280}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#eef2ff;border:1px solid #dbe1ff}
+  .hide{display:none}
   code{background:#eef2ff;padding:0 4px;border-radius:6px}
 </style>
-
-<!-- math.js (browser build) -->
-<script src="https://unpkg.com/mathjs@11.8.0/lib/browser/math.js"></script>
+<!-- Load math.js EARLY and safely -->
+<script defer src="https://unpkg.com/mathjs@11.8.0/lib/browser/math.js"></script>
 </head>
 <body>
-  <h1>Mathify 📘 Step-by-Step v14</h1>
-  <p class="muted">Linear + Quadratic solver with teacher-style steps</p>
+  <h1>Mathify 📘 Step-by-Step</h1>
+  <p class="muted">Choose a topic (SHS or University), tap an example, then solve with clear steps.</p>
 
+  <!-- Topic + options -->
   <div class="card">
-    <input id="q" placeholder="Try: 2(y+2)=12, 2y+10=4, 2x^2+3x+1=0">
-    <button onclick="compute()">Solve</button>
-    <div id="out"></div>
+    <div class="row">
+      <div style="flex:1 1 320px">
+        <label class="muted">Topic</label>
+        <select id="topic"></select>
+      </div>
+      <div id="degWrap" class="pill hide">
+        <input type="checkbox" id="useDeg" />
+        <label for="useDeg">Trigonometry: use degrees</label>
+      </div>
+    </div>
+    <div id="topicDesc" class="muted" style="margin-top:6px"></div>
   </div>
 
-<script>
+  <!-- Examples -->
+  <div class="card">
+    <div class="muted">Examples</div>
+    <div id="examples" class="row"></div>
+  </div>
+
+  <!-- Solver -->
+  <div class="card">
+    <input id="q" placeholder="Type a problem, or tap an example above" />
+    <div class="row">
+      <button id="solveBtn">Solve</button>
+      <button id="clearBtn" style="background:#475569">Clear</button>
+      <button id="copyBtn"  style="background:#0f766e">Copy steps</button>
+    </div>
+    <div id="out" style="margin-top:10px"></div>
+  </div>
+
+<script defer>
+/* ---------- Data ---------- */
+var TOPICS = {
+  "SHS": {
+    "Basic Arithmetic": {desc:"Add, subtract, multiply, divide; fractions, powers.", ex:["10÷2","2×3","5^2","3(4+2)"]},
+    "Linear Equations": {desc:"Solve ax + b = c.", ex:["2y+10=4","3x-9=0","2(y+2)=12"]},
+    "Quadratics": {desc:"ax^2 + bx + c = 0 with steps.", ex:["x^2+3x+2=0","2x^2+3x+1=0","x^2+4x+4=0"]},
+    "Algebraic Expressions": {desc:"Expand & simplify.", ex:["(x+2)(x+3)","2(x+1)^2","3x(x-4)"]},
+    "Trigonometry": {desc:"Sine, cosine, tangent (set degrees if needed).", ex:["sin(30)","cos(60)","tan(45)"]},
+    "Geometry & Mensuration": {desc:"Areas & volumes.", ex:["pi*5^2","2*pi*7","(1/3)*pi*3^2*10"]}
+  },
+  "University": {
+    "Calculus – Limits": {desc:"Basic limit evaluation.", ex:["limit((x^2-1)/(x-1), x, 1)"]},
+    "Calculus – Differentiation": {desc:"Differentiate functions.", ex:["derivative(x^3+2x, x)"]},
+    "Calculus – Integration": {desc:"Indefinite/definite integrals.", ex:["integral(2x, x)","integral(sin(x), x, 0, pi)"]},
+    "Linear Algebra": {desc:"Matrices and determinants.", ex:["[[1,2],[3,4]] * [[1,0],[0,1]]","det([[2,1],[5,3]])"]},
+    "Complex Numbers": {desc:"Operations with i.", ex:["(2+3i)*(1-i)","abs(3+4i)"]}
+  }
+};
+
+/* ---------- Helpers ---------- */
+function $(id){ return document.getElementById(id); }
+function add(out, html){ out.innerHTML += html; }
 function sanitize(expr){
-  let e = String(expr||'').trim();
+  var e = String(expr||'').trim();
   e = e.replace(/[÷:]/g,'/').replace(/–|−/g,'-');
   e = e.replace(/(\d|\))\s*[xX×⋅·•]\s*(\d|\()/g,'$1*$2');
   e = e.replace(/(\d)\s*([a-zA-Z])/g,'$1*$2')
@@ -41,71 +94,164 @@ function sanitize(expr){
        .replace(/\)\s*\(/g,')*(');
   return e;
 }
-function add(out, html){ out.innerHTML += html; }
-function fmt(n){ return Number.isFinite(n) ? (Math.round(n*1e10)/1e10).toString() : String(n); }
+function fmt(n){ return isFinite(n) ? (Math.round(n*1e10)/1e10).toString() : String(n); }
 function num(s){ if(s===''||s==='+')return 1; if(s==='-')return -1; return parseFloat(s); }
-
-function extractQuadraticCoeffs(poly, variable){
-  const p = poly.replace(/\s+/g,'').replace(/\*\*/g,'^');
-  let a=0,b=0,c=0;
-  const ax2=new RegExp(`([+\\-]?\\d*\\.?\\d*)\\*?${variable}\\^2`);
-  const bx=new RegExp(`([+\\-]?\\d*\\.?\\d*)\\*?${variable}(?!\\^)`);
-  const ma=p.match(ax2); if(ma) a=num(ma[1]);
-  const mb=p.match(bx);  if(mb) b=num(mb[1]);
-  let rest=p.replace(ax2,'').replace(bx,'');
-  rest = rest || '0';
-  c = Number(math.evaluate(rest));
-  return {a,b,c};
+function firstVar(str){
+  var m = String(str||'').match(/[a-zA-Z]/);
+  return m ? m[0] : 'x';
+}
+function applyDegreesIfNeeded(expr){
+  if (!$('useDeg').checked) return expr;
+  return expr.replace(/\b(sin|cos|tan|asin|acos|atan)\s*\(([^()]+)\)/g, function(_,fn,arg){
+    return fn+"("+arg+" deg)";
+  });
 }
 
-function solveLinear(e, variable, out){
-  // e like "2*x+6" or "-3*y-9"
-  const clean = e.replace(/\s+/g,'');
-  const rx = new RegExp(`([+\\-]?\\d*\\.?\\d*)\\*?${variable}([+\\-].+)?$`);
-  const m = clean.match(rx);
-  if(!m){ add(out, `<div class='answer-box warn'>Could not read a linear form in ${variable}.</div>`); return; }
-  const a = num(m[1]);
-  const rest = (m[2]||'');
-  const b = rest ? Number(math.evaluate(rest)) : 0;
+/* ---------- Build Topics UI ---------- */
+(function buildTopics(){
+  var topicSel = $('topic');
+  for (var section in TOPICS){
+    var og = document.createElement('optgroup');
+    og.label = section;
+    for (var t in TOPICS[section]){
+      var opt = document.createElement('option');
+      opt.value = section + "::" + t;
+      opt.textContent = t;
+      og.appendChild(opt);
+    }
+    topicSel.appendChild(og);
+  }
+  topicSel.value = "SHS::Linear Equations";
+  onTopicChange();
+})();
+$('topic').addEventListener('change', onTopicChange);
 
-  // Step 3: subtract b from both sides
-  add(out, `<div class='step-box'>Step 3️⃣ Subtract <code>${fmt(b)}</code> from both sides → <code>${fmt(a)}${variable} = ${fmt(-b)}</code></div>`);
-  // Step 4: divide by a
-  add(out, `<div class='step-box'>Step 4️⃣ Divide both sides by <code>${fmt(a)}</code> → <code>${variable} = ${fmt((-b)/a)}</code></div>`);
-  add(out, `<div class='answer-box'>Final Answer: ${variable} = ${fmt((-b)/a)}</div>`);
-}
-
-function solveQuadratic(e, variable, out){
-  const {a,b,c} = extractQuadraticCoeffs(e, variable);
-  if (Math.abs(a) < 1e-12) { solveLinear(e, variable, out); return; }
-
-  add(out, `<div class='step-box'>Step 3️⃣ Identify coefficients → <code>a=${fmt(a)}, b=${fmt(b)}, c=${fmt(c)}</code></div>`);
-  const D = b*b - 4*a*c;
-  add(out, `<div class='step-box'>Step 4️⃣ Compute discriminant → <code>D = b² − 4ac = ${fmt(D)}</code></div>`);
-  add(out, `<div class='step-box'>Step 5️⃣ Use quadratic formula → <code>${variable} = (-b ± √D) / (2a)</code></div>`);
-
-  if (D > 0){
-    const r = Math.sqrt(D);
-    const x1 = (-b + r)/(2*a);
-    const x2 = (-b - r)/(2*a);
-    add(out, `<div class='answer-box'>Roots: ${variable} = ${fmt(x1)},  ${variable} = ${fmt(x2)}</div>`);
-  } else if (Math.abs(D) < 1e-12){
-    const x = (-b)/(2*a);
-    add(out, `<div class='answer-box'>Double root: ${variable} = ${fmt(x)}</div>`);
+function onTopicChange(){
+  var val = $('topic').value.split('::');
+  var section = val[0], t = val[1];
+  var cfg = TOPICS[section][t];
+  $('topicDesc').textContent = cfg.desc;
+  $('examples').innerHTML = '';
+  for (var i=0;i<cfg.ex.length;i++){
+    (function(example){
+      var tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.textContent = example;
+      tag.onclick = function(){ $('q').value = example; };
+      $('examples').appendChild(tag);
+    })(cfg.ex[i]);
+  }
+  // show degrees toggle only for Trigonometry
+  if (t.toLowerCase().indexOf('trigonometry') !== -1){
+    $('degWrap').classList.remove('hide');
   } else {
-    const r = Math.sqrt(-D);
-    const real = (-b)/(2*a);
-    const imag = r/(2*a);
-    add(out, `<div class='answer-box'>Complex roots: ${variable} = ${fmt(real)} ± ${fmt(imag)}i</div>`);
+    $('degWrap').classList.add('hide');
+    $('useDeg').checked = false;
   }
 }
 
-function compute(){
-  const raw = document.getElementById('q').value || '';
-  const expr = sanitize(raw);
-  const out = document.getElementById('out');
-  out.innerHTML = `<div class="step-box">Problem: <code>${expr}</code></div>`;
+/* ---------- Algebra pieces (no fancy syntax) ---------- */
+function extractQuadraticCoeffs(poly, variable){
+  var p = poly.replace(/\s+/g,'').replace(/\*\*/g,'^');
+  var a=0,b=0,c=0;
+  var ax2 = new RegExp('([+\\-]?\\d*\\.?\\d*)\\*?'+variable+'\\^2');
+  var bx  = new RegExp('([+\\-]?\\d*\\.?\\d*)\\*?'+variable+'(?!\\^)');
+  var ma = p.match(ax2); if(ma) a = num(ma[1]);
+  var mb = p.match(bx);  if(mb) b = num(mb[1]);
+  var rest = p.replace(ax2,'').replace(bx,''); if(!rest) rest='0';
+  c = Number(math.evaluate(rest));
+  return {a:a,b:b,c:c};
+}
 
+function solveLinear(e, variable, out){
+  var clean = e.replace(/\s+/g,'');
+  var rx = new RegExp('([+\\-]?\\d*\\.?\\d*)\\*?'+variable+'([+\\-].+)?$');
+  var m = clean.match(rx);
+  if(!m){ add(out,"<div class='answer-box warn'>Could not read a linear form in "+variable+".</div>"); return; }
+  var a = num(m[1]);
+  var b = m[2] ? Number(math.evaluate(m[2])) : 0;
+  add(out,"<div class='step-box'>Step 3️⃣ Subtract <code>"+fmt(b)+"</code> from both sides → <code>"+fmt(a)+variable+" = "+fmt(-b)+"</code></div>");
+  add(out,"<div class='step-box'>Step 4️⃣ Divide both sides by <code>"+fmt(a)+"</code> → <code>"+variable+" = "+fmt((-b)/a)+"</code></div>");
+  add(out,"<div class='answer-box'>Final Answer: "+variable+" = "+fmt((-b)/a)+"</div>");
+}
+
+function solveQuadratic(e, variable, out){
+  var co = extractQuadraticCoeffs(e, variable), a=co.a,b=co.b,c=co.c;
+  if (Math.abs(a) < 1e-12){ solveLinear(e,variable,out); return; }
+  add(out,"<div class='step-box'>Step 3️⃣ Identify coefficients → <code>a="+fmt(a)+", b="+fmt(b)+", c="+fmt(c)+"</code></div>");
+  var D = b*b - 4*a*c;
+  add(out,"<div class='step-box'>Step 4️⃣ Compute discriminant → <code>D = b² − 4ac = "+fmt(D)+"</code></div>");
+  add(out,"<div class='step-box'>Step 5️⃣ Use quadratic formula → <code>"+variable+" = (-b ± √D) / (2a)</code></div>");
+  if (D > 0){
+    var r = Math.sqrt(D), x1 = (-b + r)/(2*a), x2 = (-b - r)/(2*a);
+    add(out,"<div class='answer-box'>Roots: "+variable+" = "+fmt(x1)+",  "+variable+" = "+fmt(x2)+"</div>");
+  } else if (Math.abs(D) < 1e-12){
+    var x = (-b)/(2*a);
+    add(out,"<div class='answer-box'>Double root: "+variable+" = "+fmt(x)+"</div>");
+  } else {
+    var rr = Math.sqrt(-D), real = (-b)/(2*a), imag = rr/(2*a);
+    add(out,"<div class='answer-box'>Complex roots: "+variable+" = "+fmt(real)+" ± "+fmt(imag)+"i</div>");
+  }
+}
+
+/* ---------- Compute ---------- */
+function compute(){
+  $('out').innerHTML = '';
+  var raw = $('q').value || '';
+  var expr = sanitize(raw);
+  expr = applyDegreesIfNeeded(expr);
+
+  var out = $('out');
+  add(out, "<div class='step-box'>Problem: <code>"+expr+"</code></div>");
+
+  if (typeof math === "undefined"){
+    add(out, "<div class='step-box warn'>⚠️ Math.js failed to load.</div>");
+    return;
+  }
+
+  try{
+    if (expr.indexOf('=') !== -1){
+      var parts = expr.split('=');
+      var L = parts[0], R = parts[1];
+      var variable = firstVar(L+R);
+
+      var left  = math.simplify(math.expand(math.simplify(L))).toString();
+      var right = math.simplify(math.expand(math.simplify(R))).toString();
+
+      add(out, "<div class='step-box'>Step 1️⃣ Expand & simplify each side → <code>"+left+" = "+right+"</code></div>");
+      var equation = math.simplify(math.expand(left+"-("+right+")")).toString();
+      add(out, "<div class='step-box'>Step 2️⃣ Move all terms to one side → <code>"+equation+" = 0</code></div>");
+
+      if (new RegExp(variable+"\\^2").test(equation)) solveQuadratic(equation,variable,out);
+      else solveLinear(equation,variable,out);
+      return;
+    }
+
+    var simplified = math.simplify(expr).toString();
+    var value = math.evaluate(expr);
+    add(out, "<div class='step-box'>Step 1️⃣ Simplify → <code>"+simplified+"</code></div>");
+    add(out, "<div class='answer-box'>Final Answer = "+fmt(value)+"</div>");
+  }catch(err){
+    add(out, "<div class='answer-box warn'>Error: "+err.message+"</div>");
+  }
+}
+
+/* ---------- Buttons ---------- */
+$('solveBtn').addEventListener('click', compute);
+$('clearBtn').addEventListener('click', function(){
+  $('q').value=''; $('out').innerHTML='';
+});
+$('copyBtn').addEventListener('click', function(){
+  var text = $('out').innerText || '';
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){ alert('Steps copied ✅'); }, function(){ alert('Copy failed. Long-press to copy.'); });
+  } else {
+    alert('Long-press the steps to select and copy.');
+  }
+});
+</script>
+</body>
+</html>
   if (typeof math === "undefined"){
     add(out, `<div class='step-box warn'>⚠️ Math.js failed to load.</div>`); return;
   }
