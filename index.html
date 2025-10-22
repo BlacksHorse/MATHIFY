@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mathify ✅ Ultra-Minimal v5</title>
+<title>Mathify 📘 Step-by-Step v6</title>
 <style>
   body{font-family:system-ui,Arial;max-width:720px;margin:0 auto;padding:24px;background:#f6f7fb}
   h1{margin:0 0 8px}
@@ -14,20 +14,17 @@
   .muted{color:#6b7280}
 </style>
 
-<!-- ✅ Load correct libraries -->
 <script src="https://cdn.jsdelivr.net/npm/mathjs@11/lib/browser/math.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/nerdamer.core.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Algebra.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Calculus.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Solve.js"></script>
 </head>
 <body>
-  <h1>Mathify ✅ Ultra-Minimal v5</h1>
-  <p class="muted">Try: <code>10÷2</code> | <code>2×3</code> | <code>2y+10=4</code> | <code>2(y+10)=4</code> | <code>2x^2+3x+1=0</code></p>
+  <h1>Mathify 📘 Step-by-Step v6</h1>
+  <p class="muted">Now shows steps for SHS + University math</p>
 
   <div class="card">
-    <input id="q" placeholder="Type equation or expression">
-    <button onclick="compute()">Compute</button>
+    <input id="q" placeholder="Example: 2y + 10 = 4 or 10÷2">
+    <button onclick="compute()">Solve</button>
     <pre id="out"></pre>
   </div>
 
@@ -36,50 +33,52 @@ function sanitize(expr){
   let e = String(expr||'').trim();
   e = e.replace(/[÷:]/g,'/').replace(/–|−/g,'-');
   e = e.replace(/(\d|\))\s*[xX×⋅·•]\s*(\d|\()/g,'$1*$2');
-  e = e
-    .replace(/(\d)\s*([a-zA-Z])/g,'$1*$2')
-    .replace(/([a-zA-Z])\s*(\d)/g,'$1*$2')
-    .replace(/(\d)\s*\(/g,'$1*(')
-    .replace(/\)\s*\(/g,')*(');
+  e = e.replace(/(\d)\s*([a-zA-Z])/g,'$1*$2')
+       .replace(/([a-zA-Z])\s*(\d)/g,'$1*$2')
+       .replace(/(\d)\s*\(/g,'$1*(')
+       .replace(/\)\s*\(/g,')*(');
   return e;
 }
 
 function compute(){
   const raw = document.getElementById('q').value || '';
   const expr = sanitize(raw);
-  const hasEq = expr.includes('=');
-  const isArithmetic = !hasEq && !/[a-zA-Z]/.test(expr);
-  let out = `Raw: ${raw}\nSanitized: ${expr}\n`;
+  const out = document.getElementById('out');
+  let steps = `Expression: ${expr}\n\n`;
 
-  try{
-    if (hasEq) {
-      if (typeof nerdamer === 'undefined') {
-        throw new Error('❌ Nerdamer library not loaded');
-      }
+  try {
+    if (expr.includes('=')) {
+      // ---- EQUATION ----
       const [L,R] = expr.split('=');
-      const m = (L+R).match(/[a-zA-Z]/);
-      const v = m ? m[0] : 'x';
+      const variable = (L+R).match(/[a-zA-Z]/)?.[0] || 'x';
       const poly = `${L}-(${R})`;
-      const sol = nerdamer.solve(poly, v);
-      out += `Branch: EQUATION\nVariable: ${v}\nTransform: ${poly}=0\nSolution: ${sol.toString()}`;
-      document.getElementById('out').textContent = out;
+
+      // Try linear first
+      const sol = nerdamer.solve(poly, variable);
+      const result = sol.toString();
+
+      // Try to show simple linear steps
+      if (/^[\d\+\-\*\/]*[a-zA-Z]/.test(L)) {
+        // Example: 2y + 10 = 4
+        const left = L.match(/([0-9]*)\*?[a-zA-Z]/);
+        if (left) {
+          const coeff = parseFloat(left[1] || 1);
+          const rightNum = math.evaluate(R) - (math.evaluate(L.replace(/[0-9]*\*?[a-zA-Z]/,'')) || 0);
+          steps += `Step 1: Move constants to right side → ${coeff}${variable} = ${rightNum}\n`;
+          steps += `Step 2: Divide both sides by ${coeff} → ${variable} = ${rightNum/coeff}\n`;
+        }
+      }
+      steps += `Final Answer: ${variable} = ${result}`;
+      out.textContent = steps;
       return;
     }
 
-    if (isArithmetic) {
-      const val = math.evaluate(expr);
-      out += `Branch: ARITHMETIC\nValue: ${val}`;
-      document.getElementById('out').textContent = out;
-      return;
-    }
-
-    const val = math.simplify(expr).toString();
-    out += `Branch: ALGEBRA\nSimplified: ${val}`;
-    document.getElementById('out').textContent = out;
-
-  } catch(e){
-    out += `\nERROR: ${e.message}`;
-    document.getElementById('out').textContent = out;
+    // ---- SIMPLE ARITHMETIC ----
+    const val = math.evaluate(expr);
+    steps += `Step 1: Evaluate → ${val}\nFinal Answer: ${val}`;
+    out.textContent = steps;
+  } catch (err) {
+    out.textContent = `Error: ${err.message}`;
   }
 }
 </script>
