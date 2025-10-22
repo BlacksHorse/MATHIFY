@@ -3,28 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mathify 📘 Step-by-Step v10</title>
+<title>Mathify 📘 Step-by-Step v12 (Quadratic)</title>
 <style>
   body{font-family:system-ui,Arial;max-width:720px;margin:0 auto;padding:24px;background:#f6f7fb}
   h1{margin:0 0 8px}
   .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px}
   input{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:10px;margin:8px 0}
   button{padding:10px 14px;border:0;border-radius:10px;background:#1f6feb;color:#fff;cursor:pointer}
-  pre{white-space:pre-wrap;word-wrap:break-word}
+  .step-box{background:#e8f0fe;padding:8px 10px;margin:6px 0;border-left:4px solid #1f6feb;border-radius:8px}
+  .answer-box{background:#d1fae5;padding:8px 10px;margin-top:10px;border-left:4px solid #059669;border-radius:8px;font-weight:bold}
+  .warn{background:#fff7ed;border-left-color:#ea580c}
   .muted{color:#6b7280}
 </style>
 
-<!-- ✅ Load full math.js bundle with algebra solver -->
+<!-- math.js -->
 <script src="https://unpkg.com/mathjs@11.8.0/lib/browser/math.js"></script>
 </head>
 <body>
-  <h1>Mathify 📘 Step-by-Step v10</h1>
-  <p class="muted">Now fully working — shows clear steps for SHS + University levels</p>
+  <h1>Mathify 📘 Step-by-Step v12</h1>
+  <p class="muted">Linear + Quadratic solver with student-friendly steps</p>
 
   <div class="card">
-    <input id="q" placeholder="Example: 2y + 10 = 4 or 2x^2 + 3x + 1 = 0">
+    <input id="q" placeholder="Try: 2y+10=4, 2(y+2)=12, 2x^2+3x+1=0">
     <button onclick="compute()">Solve</button>
-    <pre id="out"></pre>
+    <div id="out"></div>
   </div>
 
 <script>
@@ -39,14 +41,101 @@ function sanitize(expr){
   return e;
 }
 
+function add(out, html){ out.innerHTML += html; }
+
+// parse numeric string with implicit +/-1
+function num(s){
+  if (s === '' || s === '+' || s === undefined) return 1;
+  if (s === '-') return -1;
+  return parseFloat(s);
+}
+
+// Extract coefficients a,b,c from a simplified polynomial like "2*x^2+3*x+1"
+function extractQuadraticCoeffs(poly, variable){
+  const p = poly.replace(/\s+/g,'').replace(/\*\*/g,'^');
+  let a=0, b=0, c=0;
+
+  // a term
+  const ax2 = new RegExp(`([+\\-]?\\d*\\.?\\d*)\\*?${variable}\\^2`);
+  const ma = p.match(ax2);
+  if (ma){ a = num(ma[1]); }
+
+  // b term (var to the first power, but not ^2)
+  const bx = new RegExp(`([+\\-]?\\d*\\.?\\d*)\\*?${variable}(?!\\^)`);
+  const mb = p.match(bx);
+  if (mb){ b = num(mb[1]); }
+
+  // remove ax2 and bx to compute c
+  let rest = p
+    .replace(ax2,'')
+    .replace(bx,'')
+    .replace(/\+\+/g,'+')
+    .replace(/\-\+/g,'-')
+    .replace(/^\+/,'');
+  // if nothing left, c=0; else evaluate remaining constants
+  c = rest ? Number(math.evaluate(rest)) : 0;
+
+  return {a,b,c};
+}
+
+function solveLinear(equationSimplified, variable, out){
+  // equationSimplified is like "2*x+6"
+  // find "a*var + b"
+  let a=0, b=0;
+  const match = equationSimplified.replace(/\s+/g,'').match(new RegExp(`([+\\-]?\\d*\\.?\\d*)\\*?${variable}([+\\-].+)?$`));
+  if (match){
+    a = num(match[1]);
+    const rest = (match[2]||'');
+    b = rest ? Number(math.evaluate(rest)) : 0;
+  } else {
+    add(out, `<div class='warn step-box'>Could not read a linear form in ${variable}.</div>`);
+    return;
+  }
+  add(out, `<div class='step-box'>Step 3️⃣ Linear isolate → ${a}${variable} + (${b}) = 0</div>`);
+  const sol = -b/a;
+  add(out, `<div class='answer-box'>Final Answer: ${variable} = ${sol}</div>`);
+}
+
+function solveQuadratic(equationSimplified, variable, out){
+  // equationSimplified like "2*x^2+3*x+1"
+  const {a,b,c} = extractQuadraticCoeffs(equationSimplified, variable);
+  if (a === 0){ // actually linear
+    solveLinear(equationSimplified, variable, out);
+    return;
+  }
+
+  add(out, `<div class='step-box'>Step 3️⃣ Identify coefficients → a=${a}, b=${b}, c=${c}</div>`);
+  const D = b*b - 4*a*c;
+  add(out, `<div class='step-box'>Step 4️⃣ Discriminant → D = b² - 4ac = ${b}² - 4·${a}·${c} = ${D}</div>`);
+
+  if (D > 0){
+    const rootD = Math.sqrt(D);
+    const x1 = (-b + rootD) / (2*a);
+    const x2 = (-b - rootD) / (2*a);
+    add(out, `<div class='step-box'>Step 5️⃣ Quadratic formula → (-b ± √D) / (2a)</div>`);
+    add(out, `<div class='answer-box'>Roots: ${variable} = ${x1}, ${variable} = ${x2}</div>`);
+  } else if (D === 0){
+    const x = (-b) / (2*a);
+    add(out, `<div class='step-box'>Step 5️⃣ D = 0 → double root</div>`);
+    add(out, `<div class='answer-box'>Root: ${variable} = ${x}</div>`);
+  } else {
+    // Complex roots
+    const rootD = Math.sqrt(-D);
+    const real = (-b)/(2*a);
+    const imag = rootD/(2*a);
+    add(out, `<div class='step-box'>Step 5️⃣ D < 0 → complex roots</div>`);
+    add(out, `<div class='answer-box'>Roots: ${variable} = ${real} + ${imag}i, ${variable} = ${real} - ${imag}i</div>`);
+  }
+}
+
 function compute(){
   const raw = document.getElementById('q').value || '';
   const expr = sanitize(raw);
   const out = document.getElementById('out');
-  let steps = `Expression: ${expr}\n\n`;
+  out.innerHTML = `<div class="step-box">Expression: ${expr}</div>`;
 
   if (typeof math === "undefined") {
-    out.textContent = "⚠️ Error: Math.js failed to load. Please check your internet connection.";
+    add(out, `<div class='step-box warn'>⚠️ Math.js failed to load. Check your internet.</div>`);
     return;
   }
 
@@ -59,31 +148,27 @@ function compute(){
       const right = math.simplify(R).toString();
       const equation = `${left}-(${right})`;
 
-      steps += `Step 1: Simplify both sides → ${left} = ${right}\n`;
-      steps += `Step 2: Move all terms to one side → ${equation} = 0\n`;
+      add(out, `<div class='step-box'>Step 1️⃣ Simplify both sides → ${left} = ${right}</div>`);
+      add(out, `<div class='step-box'>Step 2️⃣ Move all terms to one side → ${equation} = 0</div>`);
 
-      let sol = "Cannot solve";
-      try {
-        sol = math.solve(equation + "=0", variable);
-      } catch {
-        // fallback using evaluate for linear cases
-        const simplified = math.simplify(equation).toString();
-        steps += `Simplified form: ${simplified}\n`;
-        sol = "Try linear solve manually";
+      const simplified = math.simplify(equation).toString(); // like "2*x^2+3*x+1" or "2*x+6"
+      // Decide: quadratic vs linear
+      if (new RegExp(`${variable}\\^2`).test(simplified)){
+        solveQuadratic(simplified, variable, out);
+      } else {
+        solveLinear(simplified, variable, out);
       }
-
-      steps += `Step 3: Solve for ${variable}\nFinal Answer: ${variable} = ${sol}`;
-      out.textContent = steps;
       return;
     }
 
+    // Pure arithmetic/expression
     const simplified = math.simplify(expr).toString();
     const val = math.evaluate(expr);
-    steps += `Step 1: Simplify → ${simplified}\nStep 2: Evaluate → ${val}\nFinal Answer: ${val}`;
-    out.textContent = steps;
+    add(out, `<div class='step-box'>Step 1️⃣ Simplify → ${simplified}</div>`);
+    add(out, `<div class='answer-box'>Final Answer = ${val}</div>`);
 
   } catch (err) {
-    out.textContent = `Error: ${err.message}`;
+    add(out, `<div class='answer-box warn'>Error: ${err.message}</div>`);
   }
 }
 </script>
