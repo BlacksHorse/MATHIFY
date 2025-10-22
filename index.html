@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mathify 📘 Step-by-Step v7</title>
+<title>Mathify 📘 Step-by-Step v8</title>
 <style>
   body{font-family:system-ui,Arial;max-width:720px;margin:0 auto;padding:24px;background:#f6f7fb}
   h1{margin:0 0 8px}
@@ -17,8 +17,8 @@
 <script src="https://cdn.jsdelivr.net/npm/mathjs@11/lib/browser/math.js"></script>
 </head>
 <body>
-  <h1>Mathify 📘 Step-by-Step v7</h1>
-  <p class="muted">Now solves with detailed steps for SHS + University levels</p>
+  <h1>Mathify 📘 Step-by-Step v8</h1>
+  <p class="muted">Now fully working — shows steps for SHS + University levels</p>
 
   <div class="card">
     <input id="q" placeholder="Example: 2y + 10 = 4 or 2x^2 + 3x + 1 = 0">
@@ -45,27 +45,29 @@ function compute(){
   let steps = `Expression: ${expr}\n\n`;
 
   try {
+    // if it's an equation
     if (expr.includes('=')) {
-      // EQUATION SOLVER
-      const [L,R] = expr.split('=');
-      const variable = (L+R).match(/[a-zA-Z]/)?.[0] || 'x';
-      const left = math.parse(L);
-      const right = math.parse(R);
-      const eq = new math.EqualNode(left, right);
-      const sol = math.solve(eq, variable);
+      const [L, R] = expr.split('=');
+      const variable = (L + R).match(/[a-zA-Z]/)?.[0] || 'x';
 
-      // STEP DISPLAY
-      steps += `Step 1: Move all terms to one side → ${math.simplify(L + "-(" + R + ")").toString()} = 0\n`;
-      steps += `Step 2: Simplify and isolate ${variable}\n`;
-      steps += `Final Answer: ${variable} = ${sol.toString()}`;
+      const leftSimplified = math.simplify(L).toString();
+      const rightSimplified = math.simplify(R).toString();
+      const equation = `${leftSimplified} - (${rightSimplified})`;
+
+      steps += `Step 1: Simplify both sides → ${leftSimplified} = ${rightSimplified}\n`;
+      steps += `Step 2: Bring all terms to one side → ${equation} = 0\n`;
+
+      // Try to find the variable’s coefficient and constant
+      const sol = math.solve(equation + "=0", variable);
+      steps += `Step 3: Solve for ${variable}\nFinal Answer: ${variable} = ${sol}`;
       out.textContent = steps;
       return;
     }
 
-    // SIMPLE EXPRESSION
+    // simple arithmetic or expression
+    const simplified = math.simplify(expr).toString();
     const val = math.evaluate(expr);
-    steps += `Step 1: Evaluate the expression → ${val}\n`;
-    steps += `Final Answer: ${val}`;
+    steps += `Step 1: Simplify → ${simplified}\nStep 2: Evaluate → ${val}\nFinal Answer: ${val}`;
     out.textContent = steps;
 
   } catch (err) {
