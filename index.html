@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mathify ✅ Ultra-Minimal v4</title>
+<title>Mathify ✅ Ultra-Minimal v5</title>
 <style>
   body{font-family:system-ui,Arial;max-width:720px;margin:0 auto;padding:24px;background:#f6f7fb}
   h1{margin:0 0 8px}
@@ -14,12 +14,15 @@
   .muted{color:#6b7280}
 </style>
 
-<!-- math libraries -->
-<script src="https://cdn.jsdelivr.net/npm/mathjs@11"></script>
-<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/nerdamer.all.min.js"></script>
+<!-- ✅ Load correct libraries -->
+<script src="https://cdn.jsdelivr.net/npm/mathjs@11/lib/browser/math.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/nerdamer.core.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Algebra.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Calculus.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Solve.js"></script>
 </head>
 <body>
-  <h1>Mathify ✅ Ultra-Minimal v4</h1>
+  <h1>Mathify ✅ Ultra-Minimal v5</h1>
   <p class="muted">Try: <code>10÷2</code> | <code>2×3</code> | <code>2y+10=4</code> | <code>2(y+10)=4</code> | <code>2x^2+3x+1=0</code></p>
 
   <div class="card">
@@ -31,12 +34,13 @@
 <script>
 function sanitize(expr){
   let e = String(expr||'').trim();
-  e = e.replace(/[÷:]/g,'/').replace(/–|−/g,'-');                  // division/minus
-  e = e.replace(/(\d|\))\s*[xX×⋅·•]\s*(\d|\()/g,'$1*$2');           // a×b, a x b -> *
-  e = e.replace(/(\d)\s*([a-zA-Z])/g,'$1*$2')                       // 2y -> 2*y
-       .replace(/([a-zA-Z])\s*(\d)/g,'$1*$2')                       // y2 -> y*2
-       .replace(/(\d)\s*\(/g,'$1*(')                                // 3( -> 3*(
-       .replace(/\)\s*\(/g,')*(');                                  // )( -> )*(
+  e = e.replace(/[÷:]/g,'/').replace(/–|−/g,'-');
+  e = e.replace(/(\d|\))\s*[xX×⋅·•]\s*(\d|\()/g,'$1*$2');
+  e = e
+    .replace(/(\d)\s*([a-zA-Z])/g,'$1*$2')
+    .replace(/([a-zA-Z])\s*(\d)/g,'$1*$2')
+    .replace(/(\d)\s*\(/g,'$1*(')
+    .replace(/\)\s*\(/g,')*(');
   return e;
 }
 
@@ -49,46 +53,31 @@ function compute(){
 
   try{
     if (hasEq) {
-      // ---- EQUATIONS ----
+      if (typeof nerdamer === 'undefined') {
+        throw new Error('❌ Nerdamer library not loaded');
+      }
       const [L,R] = expr.split('=');
       const m = (L+R).match(/[a-zA-Z]/);
       const v = m ? m[0] : 'x';
-
-      let solution, branch;
-
-      if (typeof nerdamer.solveEquations === 'function') {
-        // expects 'L=R' style
-        branch = 'EQUATION (solveEquations)';
-        solution = nerdamer.solveEquations([`${L}=${R}`], [v]);
-      } else if (typeof nerdamer.solve === 'function') {
-        // expects polynomial style L-R = 0
-        branch = 'EQUATION (solve)';
-        const poly = `${L}-(${R})`;
-        solution = nerdamer.solve(poly, v);
-        out += `Transform: ${poly} = 0\n`;
-      } else {
-        throw new Error('No solver found in nerdamer build');
-      }
-
-      out += `Branch: ${branch}\nVariable: ${v}\nSolution: ${JSON.stringify(solution)}`;
+      const poly = `${L}-(${R})`;
+      const sol = nerdamer.solve(poly, v);
+      out += `Branch: EQUATION\nVariable: ${v}\nTransform: ${poly}=0\nSolution: ${sol.toString()}`;
       document.getElementById('out').textContent = out;
       return;
     }
 
     if (isArithmetic) {
-      // ---- ARITHMETIC ----
       const val = math.evaluate(expr);
       out += `Branch: ARITHMETIC\nValue: ${val}`;
       document.getElementById('out').textContent = out;
       return;
     }
 
-    // ---- ALGEBRA (no "=") ----
-    const simp = math.simplify(expr).toString();
-    out += `Branch: ALGEBRA\nSimplified: ${simp}`;
+    const val = math.simplify(expr).toString();
+    out += `Branch: ALGEBRA\nSimplified: ${val}`;
     document.getElementById('out').textContent = out;
 
-  }catch(e){
+  } catch(e){
     out += `\nERROR: ${e.message}`;
     document.getElementById('out').textContent = out;
   }
