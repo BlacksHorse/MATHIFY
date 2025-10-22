@@ -1,47 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Mathify - Minimal Test</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mathify ✅ Minimal Test</title>
 <style>
-  body{font-family:Arial, sans-serif; padding:24px; background:#f6f7fb;}
-  .card{background:#fff; border:1px solid #e6e8ef; border-radius:12px; padding:16px;}
-  input,button{padding:10px; border:1px solid #cfd3da; border-radius:8px}
-  button{background:#1f6feb; color:#fff; border:none; margin-left:8px}
-  pre{white-space:pre-wrap}
+  body{font-family:system-ui,Arial;max-width:720px;margin:0 auto;padding:24px;background:#f6f7fb}
+  h1{margin:0 0 8px}
+  .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px}
+  input{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:10px;margin:8px 0}
+  button{padding:10px 14px;border:0;border-radius:10px;background:#1f6feb;color:#fff;cursor:pointer}
+  pre{white-space:pre-wrap;word-wrap:break-word}
+  .muted{color:#6b7280}
 </style>
+
+<!-- Only what we need -->
+<script src="https://cdn.jsdelivr.net/npm/mathjs@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/nerdamer.core.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Solve.js"></script>
 </head>
 <body>
   <h1>Mathify ✅ Minimal Test</h1>
-  <p>If you see this, the page loaded correctly.</p>
+  <p class="muted">If you see this, the page loaded correctly.</p>
 
   <div class="card">
-    <input id="q" placeholder="Try: 10÷2 or 2×3" />
-    <button onclick="go()">Compute</button>
+    <input id="q" placeholder="Try: 10÷2  |  2×3  |  2y+10=4  |  2(x+3)=7  |  2x^2+3x+1=0">
+    <button onclick="compute()">Compute</button>
     <pre id="out"></pre>
   </div>
 
-  <!-- Only one CDN to keep things simple -->
-  <script src="https://cdn.jsdelivr.net/npm/mathjs@11"></script>
-  <script>
-    function sanitize(s){
-      return String(s||'')
-        .replace(/[÷:]/g,'/')
-        .replace(/–|−/g,'-')
-        .replace(/(\d|\))\s*[xX×⋅·•]\s*(\d|\()/g,'$1*$2');
+<script>
+function sanitize(expr){
+  let e = String(expr||'').trim();
+  // normalize operators
+  e = e.replace(/[÷:]/g,'/').replace(/–|−/g,'-');
+  // “a × b” or “a x b” between number/)/ and number/(  -> multiply
+  e = e.replace(/(\d|\))\s*[xX×⋅·•]\s*(\d|\()/g,'$1*$2');
+  // implicit multiplications 2y, y2, 3(, )(
+  e = e
+    .replace(/(\d)\s*([a-zA-Z])/g,'$1*$2')
+    .replace(/([a-zA-Z])\s*(\d)/g,'$1*$2')
+    .replace(/(\d)\s*\(/g,'$1*(')
+    .replace(/\)\s*\(/g,')*(');
+  return e;
+}
+
+function compute(){
+  const raw = document.getElementById('q').value;
+  if(!raw){ document.getElementById('out').textContent = 'Enter something.'; return; }
+
+  const expr = sanitize(raw);
+  try{
+    if (expr.includes('=')) {
+      // ====== EQUATION PATH (Nerdamer) ======
+      const [L,R] = expr.split('=');
+      // pick a variable (first letter, default x)
+      const m = (L+R).match(/[a-zA-Z]/);
+      const v = m ? m[0] : 'x';
+      const poly = `${L}-(${R})`;        // L-R = 0
+      const sol  = nerdamer.solve(poly, v); // solve for v
+      document.getElementById('out').textContent =
+        `Sanitized: ${expr}\nVariable: ${v}\nTransform: ${poly} = 0\nSolution: ${sol.toString()}`;
+    } else {
+      // ====== PURE ARITHMETIC (math.js) ======
+      const val = math.evaluate(expr);
+      document.getElementById('out').textContent =
+        `Sanitized: ${expr}\nValue: ${val}`;
     }
-    function go(){
-      const raw = document.getElementById('q').value;
-      const expr = sanitize(raw);
-      try{
-        const val = math.evaluate(expr);
-        document.getElementById('out').textContent =
-          `Parsed: ${expr}\nAnswer: ${val}`;
-      }catch(e){
-        document.getElementById('out').textContent = 'Error: ' + e.message;
-      }
-    }
-  </script>
+  }catch(e){
+    document.getElementById('out').textContent = `Error: ${e.message}\nSanitized: ${expr}`;
+  }
+}
+</script>
 </body>
 </html>
