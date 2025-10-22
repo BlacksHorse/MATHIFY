@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mathify ✅ Ultra-Minimal v2</title>
+<title>Mathify ✅ Ultra-Minimal v3</title>
 <style>
   body{font-family:system-ui,Arial;max-width:720px;margin:0 auto;padding:24px;background:#f6f7fb}
   h1{margin:0 0 8px}
@@ -14,17 +14,16 @@
   .muted{color:#6b7280}
 </style>
 
-<!-- Only what we need -->
+<!-- ✅ Only correct math libraries -->
 <script src="https://cdn.jsdelivr.net/npm/mathjs@11"></script>
-<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/nerdamer.core.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Solve.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/nerdamer.all.min.js"></script>
 </head>
 <body>
-  <h1>Mathify ✅ Ultra-Minimal v2</h1>
-  <p class="muted">Test inputs: <code>10÷2</code> | <code>2×3</code> | <code>2y+10=4</code> | <code>2(y+10)=4</code> | <code>2x^2+3x+1=0</code></p>
+  <h1>Mathify ✅ Ultra-Minimal v3</h1>
+  <p class="muted">Try: <code>10÷2</code> | <code>2×3</code> | <code>2y+10=4</code> | <code>2(y+10)=4</code> | <code>2x^2+3x+1=0</code></p>
 
   <div class="card">
-    <input id="q" placeholder="Type here…">
+    <input id="q" placeholder="Type equation or expression">
     <button onclick="compute()">Compute</button>
     <pre id="out"></pre>
   </div>
@@ -32,52 +31,44 @@
 <script>
 function sanitize(expr){
   let e = String(expr||'').trim();
-  // Normalize operators
   e = e.replace(/[÷:]/g,'/').replace(/–|−/g,'-');
-  // explicit multiply when number/close paren next to x/×/·/• and number/open paren
   e = e.replace(/(\d|\))\s*[xX×⋅·•]\s*(\d|\()/g,'$1*$2');
-  // implicit multiplications
   e = e
-      .replace(/(\d)\s*([a-zA-Z])/g,'$1*$2')
-      .replace(/([a-zA-Z])\s*(\d)/g,'$1*$2')
-      .replace(/(\d)\s*\(/g,'$1*(')
-      .replace(/\)\s*\(/g,')*(');
+    .replace(/(\d)\s*([a-zA-Z])/g,'$1*$2')
+    .replace(/([a-zA-Z])\s*(\d)/g,'$1*$2')
+    .replace(/(\d)\s*\(/g,'$1*(')
+    .replace(/\)\s*\(/g,')*(');
   return e;
 }
 
 function compute(){
-  const raw  = document.getElementById('q').value || '';
+  const raw = document.getElementById('q').value || '';
   const expr = sanitize(raw);
   const hasEq = expr.includes('=');
   const isArithmetic = !hasEq && !/[a-zA-Z]/.test(expr);
-
-  // Show exactly what branch we take
   let dbg = `Raw: ${raw}\nSanitized: ${expr}\n`;
 
   try{
     if (hasEq) {
-      // ---------- EQUATION (Nerdamer) ----------
       const [L,R] = expr.split('=');
       const m = (L+R).match(/[a-zA-Z]/);
       const v = m ? m[0] : 'x';
       const poly = `${L}-(${R})`;
-      const sol  = nerdamer.solve(poly, v); // solve L-R=0 for v
-      dbg += `Branch: EQUATION\nVariable: ${v}\nTransform: ${poly} = 0\nSolution: ${sol.toString()}`;
+      const sol = nerdamer.solveEquations([poly], [v]);
+      dbg += `Branch: EQUATION\nVariable: ${v}\nTransform: ${poly} = 0\nSolution: ${sol}`;
       document.getElementById('out').textContent = dbg;
       return;
     }
 
     if (isArithmetic) {
-      // ---------- ARITHMETIC (math.js) ----------
       const val = math.evaluate(expr);
       dbg += `Branch: ARITHMETIC\nValue: ${val}`;
       document.getElementById('out').textContent = dbg;
       return;
     }
 
-    // Otherwise: algebraic expression without "=" (we’ll just show simplified)
     const val = math.simplify(expr).toString();
-    dbg += `Branch: ALGEBRA (no equation)\nSimplified: ${val}`;
+    dbg += `Branch: ALGEBRA\nSimplified: ${val}`;
     document.getElementById('out').textContent = dbg;
   }catch(e){
     dbg += `\nERROR: ${e.message}`;
