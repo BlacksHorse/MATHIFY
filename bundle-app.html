@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DataHub - Buy Data Bundles 📱</title>
+  <style>
+    :root {
+      --primary: #10b981;
+      --secondary: #3b82f6;
+      --danger: #ef4444;
+      --dark: #1f2937;
+      --light: #f3f4f6;
+      --border: #e5e7eb;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+    
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+    
+    .header p {
+      opacity: 0.9;
+      font-size: 16px;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      color: var(--dark);
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    
+    select, input {
+      width: 100%;
+      padding: 14px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 16px;
+      transition: all 0.3s;
+    }
+    
+    select:focus, input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+    
+    .bundles-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    
+    .bundle-card {
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: white;
+    }
+    
+    .bundle-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    }
+    
+    .bundle-card.selected {
+      border-color: var(--primary);
+      background: rgba(16, 185, 129, 0.05);
+    }
+    
+    .bundle-data {
+      font-size: 24px;
+      font-weight: bold;
+      color: var(--dark);
+      margin-bottom: 4px;
+    }
+    
+    .bundle-validity {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+    
+    .bundle-price {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background: #059669;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    
+    .btn-secondary {
+      background: var(--secondary);
+      color: white;
+      margin-top: 10px;
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+      background: #2563eb;
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .summary-item:last-child {
+      border-bottom: none;
+      font-weight: 600;
+      font-size: 18px;
+      color: var(--primary);
+    }
+    
+    .payment-methods {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+    
+    .payment-method {
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .payment-method:hover {
+      border-color: var(--secondary);
+    }
+    
+    .payment-method.selected {
+      border-color: var(--secondary);
+      background: rgba(59, 130, 246, 0.05);
+    }
+    
+    .payment-icon {
+      font-size: 24px;
+      margin-bottom: 4px;
+    }
+    
+    .payment-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--dark);
+    }
+    
+    .hide {
+      display: none;
+    }
+    
+    .success-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+    
+    .success-message {
+      text-align: center;
+    }
+    
+    .success-message h2 {
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+    
+    .success-message p {
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+    
+    .error {
+      color: var(--danger);
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    
+    .info-text {
+      font-size: 14px;
+      color: #6b7280;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📱 DataHub</h1>
+      <p>Buy data bundles instantly across Africa</p>
+    </div>
+
+    <!-- Step 1: Selection -->
+    <div id="step1" class="card">
+      <h2 style="margin-bottom: 20px; color: var(--dark);">Select Your Details</h2>
+      
+      <div class="form-group">
+        <label for="country">Country</label>
+        <select id="country">
+          <option value="">Select your country</option>
+          <option value="NG">🇳🇬 Nigeria</option>
+          <option value="KE">🇰🇪 Kenya</option>
+          <option value="GH">🇬🇭 Ghana</option>
+          <option value="ZA">🇿🇦 South Africa</option>
+          <option value="TZ">🇹🇿 Tanzania</option>
+          <option value="UG">🇺🇬 Uganda</option>
+          <option value="RW">🇷🇼 Rwanda</option>
+          <option value="EG">🇪🇬 Egypt</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="network">Network Provider</label>
+        <select id="network" disabled>
+          <option value="">Select network provider</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="phone">Phone Number</label>
+        <input 
+          type="tel" 
+          id="phone" 
+          placeholder="e.g., 0801234567890" 
+          disabled
+        />
+        <p class="info-text" id="phoneFormat"></p>
+        <p class="error hide" id="phoneError">Please enter a valid phone number</p>
+      </div>
+
+      <div class="form-group">
+        <label>Select Data Bundle</label>
+        <div id="bundlesContainer" class="bundles-grid"></div>
+      </div>
+
+      <button class="btn btn-primary" id="continueBtn" disabled>
+        Continue to Payment
+      </button>
+    </div>
+
+    <!-- Step 2: Payment -->
+    <div id="step2" class="card hide">
+      <h2 style="margin-bottom: 20px; color: var(--dark);">Payment Details</h2>
+      
+      <div class="summary-item">
+        <span>Phone Number:</span>
+        <span id="summaryPhone"></span>
+      </div>
+      <div class="summary-item">
+        <span>Network:</span>
+        <span id="summaryNetwork"></span>
+      </div>
+      <div class="summary-item">
+        <span>Bundle:</span>
+        <span id="summaryBundle"></span>
+      </div>
+      <div class="summary-item">
+        <span>Total Amount:</span>
+        <span id="summaryPrice"></span>
+      </div>
+
+      <div class="form-group" style="margin-top: 24px;">
+        <label>Select Payment Method</label>
+        <div class="payment-methods">
+          <div class="payment-method" data-method="mobile-money">
+            <div class="payment-icon">📱</div>
+            <div class="payment-name">Mobile Money</div>
+          </div>
+          <div class="payment-method" data-method="card">
+            <div class="payment-icon">💳</div>
+            <div class="payment-name">Debit Card</div>
+          </div>
+          <div class="payment-method" data-method="bank">
+            <div class="payment-icon">🏦</div>
+            <div class="payment-name">Bank Transfer</div>
+          </div>
+          <div class="payment-method" data-method="ussd">
+            <div class="payment-icon">📞</div>
+            <div class="payment-name">USSD</div>
+          </div>
+        </div>
+        <p class="error hide" id="paymentError">Please select a payment method</p>
+      </div>
+
+      <button class="btn btn-primary" id="payBtn" disabled>
+        Pay Now
+      </button>
+      <button class="btn btn-secondary" id="backBtn">
+        Go Back
+      </button>
+    </div>
+
+    <!-- Step 3: Success -->
+    <div id="step3" class="card hide">
+      <div class="success-message">
+        <div class="success-icon">✅</div>
+        <h2>Purchase Successful!</h2>
+        <p>Your data bundle has been sent to:</p>
+        <p style="font-weight: 600; color: var(--dark); font-size: 18px; margin: 12px 0;" id="successPhone"></p>
+        <p id="successBundle" style="font-weight: 600; color: var(--primary);"></p>
+        <p style="margin-top: 20px;">You will receive a confirmation SMS shortly.</p>
+        <button class="btn btn-primary" id="newPurchaseBtn" style="margin-top: 24px;">
+          Make Another Purchase
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Data structure
+    const networkProviders = {
+      'NG': [
+        { name: 'MTN Nigeria', code: 'MTN-NG', currency: 'NGN', symbol: '₦' },
+        { name: 'Airtel Nigeria', code: 'AIRTEL-NG', currency: 'NGN', symbol: '₦' },
+        { name: 'Glo Nigeria', code: 'GLO-NG', currency: 'NGN', symbol: '₦' },
+        { name: '9Mobile', code: '9MOBILE-NG', currency: 'NGN', symbol: '₦' }
+      ],
+      'KE': [
+        { name: 'Safaricom', code: 'SAFARICOM-KE', currency: 'KES', symbol: 'KSh' },
+        { name: 'Airtel Kenya', code: 'AIRTEL-KE', currency: 'KES', symbol: 'KSh' },
+        { name: 'Telkom Kenya', code: 'TELKOM-KE', currency: 'KES', symbol: 'KSh' }
+      ],
+      'GH': [
+        { name: 'MTN Ghana', code: 'MTN-GH', currency: 'GHS', symbol: 'GH₵' },
+        { name: 'Vodafone Ghana', code: 'VODAFONE-GH', currency: 'GHS', symbol: 'GH₵' },
+        { name: 'AirtelTigo', code: 'AIRTELTIGO-GH', currency: 'GHS', symbol: 'GH₵' }
+      ],
+      'ZA': [
+        { name: 'Vodacom', code: 'VODACOM-ZA', currency: 'ZAR', symbol: 'R' },
+        { name: 'MTN South Africa', code: 'MTN-ZA', currency: 'ZAR', symbol: 'R' },
+        { name: 'Cell C', code: 'CELLC-ZA', currency: 'ZAR', symbol: 'R' }
+      ],
+      'TZ': [
+        { name: 'Vodacom Tanzania', code: 'VODACOM-TZ', currency: 'TZS', symbol: 'TSh' },
+        { name: 'Airtel Tanzania', code: 'AIRTEL-TZ', currency: 'TZS', symbol: 'TSh' },
+        { name: 'Tigo Tanzania', code: 'TIGO-TZ', currency: 'TZS', symbol: 'TSh' }
+      ],
+      'UG': [
+        { name: 'MTN Uganda', code: 'MTN-UG', currency: 'UGX', symbol: 'USh' },
+        { name: 'Airtel Uganda', code: 'AIRTEL-UG', currency: 'UGX', symbol: 'USh' }
+      ],
+      'RW': [
+        { name: 'MTN Rwanda', code: 'MTN-RW', currency: 'RWF', symbol: 'FRw' },
+        { name: 'Airtel Rwanda', code: 'AIRTEL-RW', currency: 'RWF', symbol: 'FRw' }
+      ],
+      'EG': [
+        { name: 'Vodafone Egypt', code: 'VODAFONE-EG', currency: 'EGP', symbol: 'E£' },
+        { name: 'Orange Egypt', code: 'ORANGE-EG', currency: 'EGP', symbol: 'E£' },
+        { name: 'Etisalat Egypt', code: 'ETISALAT-EG', currency: 'EGP', symbol: 'E£' }
+      ]
+    };
+
+    // Bundle packages with prices per country currency
+    const bundlePackages = [
+      { data: '1GB', validity: '1 Day', prices: { NGN: 300, KES: 100, GHS: 10, ZAR: 20, TZS: 2000, UGX: 3000, RWF: 1000, EGP: 30 } },
+      { data: '2GB', validity: '3 Days', prices: { NGN: 500, KES: 200, GHS: 15, ZAR: 35, TZS: 4000, UGX: 5000, RWF: 2000, EGP: 50 } },
+      { data: '5GB', validity: '7 Days', prices: { NGN: 1200, KES: 500, GHS: 35, ZAR: 80, TZS: 9000, UGX: 12000, RWF: 5000, EGP: 100 } },
+      { data: '10GB', validity: '30 Days', prices: { NGN: 2000, KES: 800, GHS: 60, ZAR: 150, TZS: 18000, UGX: 25000, RWF: 10000, EGP: 180 } },
+      { data: '20GB', validity: '30 Days', prices: { NGN: 3500, KES: 1500, GHS: 100, ZAR: 250, TZS: 35000, UGX: 45000, RWF: 18000, EGP: 300 } },
+      { data: '50GB', validity: '30 Days', prices: { NGN: 8000, KES: 3000, GHS: 200, ZAR: 500, TZS: 70000, UGX: 90000, RWF: 40000, EGP: 600 } }
+    ];
+
+    // Phone format patterns
+    const phoneFormats = {
+      'NG': { pattern: /^0[789][01]\d{8}$/, example: '080XXXXXXXX' },
+      'KE': { pattern: /^0[17]\d{8}$/, example: '07XXXXXXXX or 01XXXXXXXX' },
+      'GH': { pattern: /^0[235]\d{8}$/, example: '024XXXXXXXX' },
+      'ZA': { pattern: /^0[678]\d{8}$/, example: '082XXXXXXXX' },
+      'TZ': { pattern: /^0[67]\d{8}$/, example: '07XXXXXXXX' },
+      'UG': { pattern: /^0[37]\d{8}$/, example: '077XXXXXXXX' },
+      'RW': { pattern: /^0[78]\d{8}$/, example: '078XXXXXXXX' },
+      'EG': { pattern: /^01[0125]\d{8}$/, example: '010XXXXXXXX' }
+    };
+
+    // State
+    let selectedCountry = '';
+    let selectedNetwork = null;
+    let selectedBundle = null;
+    let selectedPayment = '';
+
+    // DOM elements
+    const countrySelect = document.getElementById('country');
+    const networkSelect = document.getElementById('network');
+    const phoneInput = document.getElementById('phone');
+    const phoneFormat = document.getElementById('phoneFormat');
+    const phoneError = document.getElementById('phoneError');
+    const bundlesContainer = document.getElementById('bundlesContainer');
+    const continueBtn = document.getElementById('continueBtn');
+    const payBtn = document.getElementById('payBtn');
+    const backBtn = document.getElementById('backBtn');
+    const newPurchaseBtn = document.getElementById('newPurchaseBtn');
+
+    // Event listeners
+    countrySelect.addEventListener('change', onCountryChange);
+    networkSelect.addEventListener('change', onNetworkChange);
+    phoneInput.addEventListener('input', validatePhone);
+    continueBtn.addEventListener('click', goToPayment);
+    backBtn.addEventListener('click', goBackToStep1);
+    payBtn.addEventListener('click', processPurchase);
+    newPurchaseBtn.addEventListener('click', resetApp);
+
+    function onCountryChange() {
+      selectedCountry = countrySelect.value;
+      
+      if (selectedCountry) {
+        networkSelect.disabled = false;
+        networkSelect.innerHTML = '<option value="">Select network provider</option>';
+        
+        const providers = networkProviders[selectedCountry];
+        providers.forEach((provider, index) => {
+          const option = document.createElement('option');
+          option.value = index;
+          option.textContent = provider.name;
+          networkSelect.appendChild(option);
+        });
+
+        phoneFormat.textContent = `Format: ${phoneFormats[selectedCountry].example}`;
+      } else {
+        networkSelect.disabled = true;
+        phoneInput.disabled = true;
+        bundlesContainer.innerHTML = '';
+      }
+      
+      validateForm();
+    }
+
+    function onNetworkChange() {
+      const networkIndex = networkSelect.value;
+      
+      if (networkIndex !== '') {
+        selectedNetwork = networkProviders[selectedCountry][networkIndex];
+        phoneInput.disabled = false;
+        renderBundles();
+      } else {
+        selectedNetwork = null;
+        phoneInput.disabled = true;
+        bundlesContainer.innerHTML = '';
+      }
+      
+      validateForm();
+    }
+
+    function renderBundles() {
+      bundlesContainer.innerHTML = '';
+      
+      bundlePackages.forEach((bundle, index) => {
+        const card = document.createElement('div');
+        card.className = 'bundle-card';
+        card.dataset.index = index;
+        
+        const price = bundle.prices[selectedNetwork.currency];
+        
+        card.innerHTML = `
+          <div class="bundle-data">${bundle.data}</div>
+          <div class="bundle-validity">${bundle.validity}</div>
+          <div class="bundle-price">${selectedNetwork.symbol}${price.toLocaleString()}</div>
+        `;
+        
+        card.addEventListener('click', () => selectBundle(index));
+        bundlesContainer.appendChild(card);
+      });
+    }
+
+    function selectBundle(index) {
+      document.querySelectorAll('.bundle-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+      
+      const card = document.querySelector(`[data-index="${index}"]`);
+      card.classList.add('selected');
+      
+      selectedBundle = bundlePackages[index];
+      validateForm();
+    }
+
+    function validatePhone() {
+      const phone = phoneInput.value.trim();
+      
+      if (!phone) {
+        phoneError.classList.add('hide');
+        validateForm();
+        return;
+      }
+      
+      const isValid = phoneFormats[selectedCountry].pattern.test(phone);
+      
+      if (isValid) {
+        phoneError.classList.add('hide');
+        phoneInput.style.borderColor = 'var(--primary)';
+      } else {
+        phoneError.classList.remove('hide');
+        phoneInput.style.borderColor = 'var(--danger)';
+      }
+      
+      validateForm();
+    }
+
+    function validateForm() {
+      const phone = phoneInput.value.trim();
+      const isPhoneValid = phone && phoneFormats[selectedCountry]?.pattern.test(phone);
+      const isComplete = selectedCountry && selectedNetwork && selectedBundle && isPhoneValid;
+      
+      continueBtn.disabled = !isComplete;
+    }
+
+    function goToPayment() {
+      const phone = phoneInput.value.trim();
+      const price = selectedBundle.prices[selectedNetwork.currency];
+      
+      document.getElementById('summaryPhone').textContent = phone;
+      document.getElementById('summaryNetwork').textContent = selectedNetwork.name;
+      document.getElementById('summaryBundle').textContent = `${selectedBundle.data} - ${selectedBundle.validity}`;
+      document.getElementById('summaryPrice').textContent = `${selectedNetwork.symbol}${price.toLocaleString()}`;
+      
+      document.getElementById('step1').classList.add('hide');
+      document.getElementById('step2').classList.remove('hide');
+      
+      setupPaymentMethods();
+    }
+
+    function setupPaymentMethods() {
+      const paymentMethods = document.querySelectorAll('.payment-method');
+      
+      paymentMethods.forEach(method => {
+        method.addEventListener('click', function() {
+          paymentMethods.forEach(m => m.classList.remove('selected'));
+          this.classList.add('selected');
+          selectedPayment = this.dataset.method;
+          document.getElementById('paymentError').classList.add('hide');
+          payBtn.disabled = false;
+        });
+      });
+    }
+
+    function goBackToStep1() {
+      document.getElementById('step2').classList.add('hide');
+      document.getElementById('step1').classList.remove('hide');
+      selectedPayment = '';
+      payBtn.disabled = true;
+    }
+
+    function processPurchase() {
+      if (!selectedPayment) {
+        document.getElementById('paymentError').classList.remove('hide');
+        return;
+      }
+      
+      // Simulate processing
+      payBtn.textContent = 'Processing...';
+      payBtn.disabled = true;
+      
+      setTimeout(() => {
+        document.getElementById('step2').classList.add('hide');
+        document.getElementById('step3').classList.remove('hide');
+        
+        document.getElementById('successPhone').textContent = phoneInput.value.trim();
+        document.getElementById('successBundle').textContent = `${selectedBundle.data} - ${selectedBundle.validity}`;
+        
+        payBtn.textContent = 'Pay Now';
+      }, 2000);
+    }
+
+    function resetApp() {
+      document.getElementById('step3').classList.add('hide');
+      document.getElementById('step1').classList.remove('hide');
+      
+      countrySelect.value = '';
+      networkSelect.value = '';
+      networkSelect.disabled = true;
+      phoneInput.value = '';
+      phoneInput.disabled = true;
+      bundlesContainer.innerHTML = '';
+      continueBtn.disabled = true;
+      
+      selectedCountry = '';
+      selectedNetwork = null;
+      selectedBundle = null;
+      selectedPayment = '';
+      
+      phoneError.classList.add('hide');
+      phoneFormat.textContent = '';
+    }
+  </script>
+</body>
+</html>
