@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MATHIFY Apps Portal</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 800px;
+      width: 100%;
+    }
+    
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 40px;
+    }
+    
+    .header h1 {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+    
+    .header p {
+      font-size: 18px;
+      opacity: 0.9;
+    }
+    
+    .apps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+    
+    .app-card {
+      background: white;
+      border-radius: 20px;
+      padding: 32px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s, box-shadow 0.3s;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    
+    .app-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    .app-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+    
+    .app-title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #1f2937;
+      margin-bottom: 12px;
+    }
+    
+    .app-description {
+      font-size: 14px;
+      color: #6b7280;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    
+    .app-button {
+      display: inline-block;
+      padding: 12px 32px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 10px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity 0.3s;
+    }
+    
+    .app-button:hover {
+      opacity: 0.9;
+    }
+    
+    .features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 16px;
+    }
+    
+    .feature-tag {
+      font-size: 11px;
+      padding: 4px 12px;
+      background: #f3f4f6;
+      border-radius: 12px;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🚀 MATHIFY</h1>
+      <p>Choose an application to get started</p>
+    </div>
+    
+    <div class="apps-grid">
+      <a href="index.html" class="app-card">
+        <div class="app-icon">📘</div>
+        <div class="app-title">Mathify</div>
+        <div class="app-description">
+          Step-by-step math problem solver supporting arithmetic, algebra, calculus, and more.
+        </div>
+        <div class="features">
+          <span class="feature-tag">Linear Equations</span>
+          <span class="feature-tag">Quadratics</span>
+          <span class="feature-tag">Calculus</span>
+          <span class="feature-tag">Trigonometry</span>
+        </div>
+        <div style="margin-top: 20px;">
+          <span class="app-button">Launch App →</span>
+        </div>
+      </a>
+      
+      <a href="bundle-app.html" class="app-card">
+        <div class="app-icon">📱</div>
+        <div class="app-title">DataHub</div>
+        <div class="app-description">
+          Buy data bundles instantly across 8 African countries with 25+ network providers.
+        </div>
+        <div class="features">
+          <span class="feature-tag">8 Countries</span>
+          <span class="feature-tag">25+ Providers</span>
+          <span class="feature-tag">Multiple Payments</span>
+          <span class="feature-tag">Mobile-First</span>
+        </div>
+        <div style="margin-top: 20px;">
+          <span class="app-button">Launch App →</span>
+        </div>
+      </a>
+    </div>
+  </div>
+</body>
+</html>
